@@ -9,7 +9,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// [C] CREATE - Criar um novo produto (Corrigido para a estrutura real do MySQL)
+// ==========================================
+// ROTAS DE PRODUTOS (CRUD)
+// ==========================================
+
+// [C] CREATE - Criar produto
 app.post('/api/produtos', async (req, res) => {
   const { categoria_id, nome, descricao, imagem_url } = req.body;
   try {
@@ -50,7 +54,7 @@ app.get('/api/produtos/:id', async (req, res) => {
   }
 });
 
-// [U] UPDATE - Atualizar um produto
+// [U] UPDATE - Atualizar produto
 app.put('/api/produtos/:id', async (req, res) => {
   const { id } = req.params;
   const { categoria_id, nome, descricao, imagem_url } = req.body;
@@ -69,7 +73,7 @@ app.put('/api/produtos/:id', async (req, res) => {
   }
 });
 
-// [D] DELETE - Remover um produto
+// [D] DELETE - Remover produto
 app.delete('/api/produtos/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -81,6 +85,58 @@ app.delete('/api/produtos/:id', async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// ROTA DE ORÇAMENTOS (INTEGRAÇÃO COM O CHECKOUT)
+// ==========================================
+
+app.post('/api/orcamentos', async (req, res) => {
+  const { cliente, itens, observacoes } = req.body;
+
+  if (!itens || itens.length === 0) {
+    return res.status(400).json({ erro: 'O carrinho está vazio.' });
+  }
+
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // 1. Regista/Insere o cliente ou cria registo básico
+    const [clienteResult] = await connection.query(
+      'INSERT INTO clientes (nome, email, telefone) VALUES (?, ?, ?)',
+      [cliente.nome, cliente.email || '', cliente.telefone]
+    );
+    const clienteId = clienteResult.insertId;
+
+    // 2. Insere a capa do orçamento
+    const [orcamentoResult] = await connection.query(
+      'INSERT INTO orcamentos (cliente_id, observacoes, data_criacao) VALUES (?, ?, NOW())',
+      [clienteId, observacoes || '']
+    );
+    const orcamentoId = orcamentoResult.insertId;
+
+    // 3. Insere os itens na tabela itens_orcamento
+    for (const item of itens) {
+      await connection.query(
+        'INSERT INTO itens_orcamento (orcamento_id, produto_id, quantidade) VALUES (?, ?, ?)',
+        [orcamentoId, item.produto_id, item.quantidade || 1]
+      );
+    }
+
+    await connection.commit();
+    connection.release();
+
+    return res.status(201).json({
+      mensagem: 'Orçamento gravado com sucesso!',
+      protocolo: orcamentoId
+    });
+  } catch (error) {
+    await connection.rollback();
+    connection.release();
+    console.error('Erro ao salvar orçamento:', error);
+    return res.status(500).json({ erro: error.message });
   }
 });
 
