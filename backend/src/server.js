@@ -1,93 +1,90 @@
 // backend/src/server.js
-require('dotenv').config();
 const express = require('express');
-const mysql = require('mysql2');
 const cors = require('cors');
+require('dotenv').config();
 
+const db = require('./db');
 const app = express();
-app.use(express.json());
+
 app.use(cors());
+app.use(express.json());
 
-// Configuração da ligação com o MySQL
-const db = mysql.createConnection({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '12345',
-  database: process.env.DB_NAME || 'comercial_pancotti'
-});
-
-db.connect((err) => {
-  if (err) {
-    console.error('ERRO AO LIGAR AO MYSQL:', err.message);
-    return;
+// [C] CREATE - Criar um novo produto (Corrigido para a estrutura real do MySQL)
+app.post('/api/produtos', async (req, res) => {
+  const { categoria_id, nome, descricao, imagem_url } = req.body;
+  try {
+    const [result] = await db.query(
+      'INSERT INTO produtos (categoria_id, nome, descricao, imagem_url) VALUES (?, ?, ?, ?)',
+      [categoria_id, nome, descricao, imagem_url]
+    );
+    return res.status(201).json({ id: result.insertId, message: 'Produto criado com sucesso!' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: error.message });
   }
-  console.log('SUCESSO: Ligado ao MySQL da Comercial Pancotti!');
 });
 
-// Endpoint para listar os produtos
-app.get('/api/produtos', (req, res) => {
-  db.query('SELECT * FROM produtos', (err, results) => {
-    if (err) {
-      console.error('Erro na query:', err.message);
-      return res.status(500).json({ erro: err.message });
-    }
-    res.json(results);
-  });
-});
-
-// Endpoint para guardar o orçamento e respetivos itens
-app.post('/api/orcamentos', (req, res) => {
-  const { cliente, itens, observacoes } = req.body;
-
-  if (!cliente || !cliente.nome || !cliente.telefone || !itens || itens.length === 0) {
-    return res.status(400).json({ erro: 'Dados incompletos. Nome, telefone e itens são obrigatórios.' });
+// [R] READ - Listar todos os produtos
+app.get('/api/produtos', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM produtos');
+    return res.status(200).json(rows);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: error.message });
   }
+});
 
-  db.beginTransaction((err) => {
-    if (err) {
-      return res.status(500).json({ erro: 'Erro ao iniciar transação.' });
+// [R] READ - Buscar produto por ID
+app.get('/api/produtos/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await db.query('SELECT * FROM produtos WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Produto não encontrado' });
     }
+    return res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: error.message });
+  }
+});
 
-    const queryCliente = 'INSERT INTO clientes (nome, email, telefone) VALUES (?, ?, ?)';
-    db.query(queryCliente, [cliente.nome, cliente.email, cliente.telefone], (err, resultCliente) => {
-      if (err) {
-        return db.rollback(() => res.status(500).json({ erro: 'Erro ao registar cliente.' }));
-      }
+// [U] UPDATE - Atualizar um produto
+app.put('/api/produtos/:id', async (req, res) => {
+  const { id } = req.params;
+  const { categoria_id, nome, descricao, imagem_url } = req.body;
+  try {
+    const [result] = await db.query(
+      'UPDATE produtos SET categoria_id = ?, nome = ?, descricao = ?, imagem_url = ? WHERE id = ?',
+      [categoria_id, nome, descricao, imagem_url, id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Produto não encontrado' });
+    }
+    return res.status(200).json({ message: 'Produto atualizado com sucesso!' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: error.message });
+  }
+});
 
-      const clienteId = resultCliente.insertId;
-      const queryOrcamento = 'INSERT INTO orcamentos (cliente_id, observacoes, status) VALUES (?, ?, "Pendente")';
-      
-      db.query(queryOrcamento, [clienteId, observacoes || ''], (err, resultOrcamento) => {
-        if (err) {
-          return db.rollback(() => res.status(500).json({ erro: 'Erro ao criar orçamento.' }));
-        }
-
-        const orcamentoId = resultOrcamento.insertId;
-        const queryItens = 'INSERT INTO itens_orcamento (orcamento_id, produto_id, quantidade) VALUES ?';
-        const itensValues = itens.map(item => [orcamentoId, item.produto_id, item.quantidade]);
-
-        db.query(queryItens, [itensValues], (err) => {
-          if (err) {
-            return db.rollback(() => res.status(500).json({ erro: 'Erro ao guardar os itens do orçamento.' }));
-          }
-
-          db.commit((err) => {
-            if (err) {
-              return db.rollback(() => res.status(500).json({ erro: 'Erro ao finalizar transação.' }));
-            }
-
-            return res.status(201).json({
-              mensagem: 'Orçamento solicitado com sucesso!',
-              protocolo: orcamentoId
-            });
-          });
-        });
-      });
-    });
-  });
+// [D] DELETE - Remover um produto
+app.delete('/api/produtos/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [result] = await db.query('DELETE FROM produtos WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Produto não encontrado' });
+    }
+    return res.status(200).json({ message: 'Produto eliminado com sucesso!' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor a correr na porta ${PORT}`);
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });

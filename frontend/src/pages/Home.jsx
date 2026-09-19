@@ -1,116 +1,32 @@
-// frontend/src/pages/Home.jsx
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart } from 'lucide-react';
-import api from '../services/api';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { HardHat, ArrowRight, Lock } from 'lucide-react';
 
 export default function Home() {
-  const [produtos, setProdutos] = useState([]);
-  const [carrinho, setCarrinho] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get('/produtos')
-      .then(response => {
-        setProdutos(response.data);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('Erro ao buscar produtos da API:', error);
-        setLoading(false);
-      });
-  }, []);
-
-  const adicionarAoCarrinho = (produto) => {
-    setCarrinho([...carrinho, produto]);
-    alert(`${produto.nome} adicionado ao orçamento!`);
-  };
+  const navigate = useNavigate();
 
   return (
-    <div style={{ padding: '2rem 0' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'center' }}>
-        <div>
-          <h1>Comercial Pancotti</h1>
-          <p style={{ color: '#64748b' }}>Materiais de Construção</p>
-        </div>
-        <button style={btnEstiloCarrinho}>
-          <ShoppingCart size={20} />
-          <span>Orçamento ({carrinho.length})</span>
-        </button>
-      </header>
+    <div style={containerEstilo}>
+      <HardHat size={80} color="#2563eb" style={{ marginBottom: '1.5rem' }} />
+      <h1 style={{ fontSize: '3rem', color: '#0f172a', marginBottom: '1rem' }}>
+        Comercial Pancotti
+      </h1>
+      <p style={{ fontSize: '1.25rem', color: '#64748b', maxWidth: '600px', marginBottom: '3rem' }}>
+        Tudo o que você precisa para a sua obra, do alicerce ao acabamento. Qualidade e entrega rápida na sua região.
+      </p>
 
-      {loading ? (
-        <p style={{ color: '#2563eb', fontSize: '1.2rem' }}>Carregando produtos...</p>
-      ) : (
-        <div style={gridEstilo}>
-          {produtos.map(produto => (
-            <div key={produto.id} style={cardEstilo}>
-              <div style={imgPlaceholder}>Produto #{produto.id}</div>
-              <h3 style={{ margin: '0.5rem 0' }}>{produto.nome}</h3>
-              <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>{produto.descricao}</p>
-              <p style={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '1rem' }}>Sob Consulta</p>
-              
-              <button 
-                style={btnEstiloAdicionar}
-                onClick={() => adicionarAoCarrinho(produto)}
-              >
-                Adicionar ao Orçamento
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: '1.5rem' }}>
+        <button style={btnPrimario} onClick={() => navigate('/catalogo')}>
+          Fazer Orçamento <ArrowRight size={20} />
+        </button>
+        <button style={btnSecundario} onClick={() => navigate('/login')}>
+          Acesso Lojista <Lock size={20} />
+        </button>
+      </div>
     </div>
   );
 }
 
-const gridEstilo = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-  gap: '1.5rem'
-};
-
-const cardEstilo = {
-  backgroundColor: '#fff',
-  padding: '1.5rem',
-  borderRadius: '8px',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'space-between'
-};
-
-const imgPlaceholder = {
-  width: '100%',
-  height: '140px',
-  backgroundColor: '#e2e8f0',
-  borderRadius: '4px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: '#94a3b8',
-  marginBottom: '1rem',
-  fontWeight: 'bold'
-};
-
-const btnEstiloAdicionar = {
-  padding: '0.75rem',
-  backgroundColor: '#2563eb',
-  color: '#fff',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  fontWeight: 'bold'
-};
-
-const btnEstiloCarrinho = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  padding: '0.75rem 1.5rem',
-  backgroundColor: '#10b981',
-  color: '#fff',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  fontWeight: 'bold'
-};
+const containerEstilo = { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center' };
+const btnPrimario = { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' };
+const btnSecundario = { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem', backgroundColor: '#f1f5f9', color: '#334155', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' };

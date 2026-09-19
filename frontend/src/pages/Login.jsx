@@ -1,4 +1,3 @@
-// src/pages/Login.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, ArrowLeft } from 'lucide-react';
@@ -8,36 +7,31 @@ export default function Login() {
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
-  
   const navigate = useNavigate();
 
   const handleLogin = (e) => {
-    e.preventDefault(); // Impede o recarregamento da página
+    e.preventDefault();
     setErro('');
 
-    // Validação 1: Formato de E-mail (Regex)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setErro('Por favor, insira um formato de e-mail válido.');
       return;
     }
 
-    // Validação 2: Tamanho da senha
     if (senha.length < 6) {
       setErro('A senha deve conter no mínimo 6 caracteres.');
       return;
     }
 
     setLoading(true);
-
-    // Simulando uma chamada à nossa API Node.js
     setTimeout(() => {
       setLoading(false);
       if (email === 'admin@pancotti.com' && senha === '123456') {
-        alert('Login aprovado! Bem-vindo ao painel.');
-        // No futuro: navigate('/admin');
+        alert('Login aprovado!');
+        navigate('/');
       } else {
-        setErro('Credenciais inválidas. Tente novamente.');
+        setErro('Credenciais inválidas. Tente admin@pancotti.com / 123456');
       }
     }, 1000);
   };
@@ -56,29 +50,17 @@ export default function Login() {
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
           <div style={inputGroup}>
-            <label>E-mail Corporativo</label>
-            <input 
-              type="text" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              placeholder="admin@pancotti.com" 
-              style={inputEstilo}
-            />
+            <label>E-mail</label>
+            <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@pancotti.com" style={inputEstilo} />
           </div>
 
           <div style={inputGroup}>
             <label>Senha</label>
-            <input 
-              type="password" 
-              value={senha} 
-              onChange={(e) => setSenha(e.target.value)} 
-              placeholder="******" 
-              style={inputEstilo}
-            />
+            <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="******" style={inputEstilo} />
           </div>
 
           <button type="submit" disabled={loading} style={btnEntrar}>
-            {loading ? 'Validando...' : 'Entrar no Sistema'}
+            {loading ? 'Validando...' : 'Entrar'}
           </button>
         </form>
       </div>
@@ -86,7 +68,6 @@ export default function Login() {
   );
 }
 
-// Estilos inline do Login
 const loginContainer = { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' };
 const cardLogin = { backgroundColor: '#fff', padding: '2.5rem', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '400px' };
 const inputGroup = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%', gap: '0.3rem' };
