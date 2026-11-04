@@ -1,0 +1,608 @@
+.checkout {
+    --ink: #191c21;
+    --muted: #66707b;
+    --line: #dfe3e7;
+    --yellow: #f6c800;
+    min-height: 100vh;
+    color: var(--ink);
+    background: #f3f5f6;
+    box-shadow: 0 0 0 100vmax #f3f5f6;
+    clip-path: inset(0 -100vmax)
+}
+
+.checkout button,
+.checkout input,
+.checkout textarea {
+    font: inherit
+}
+
+.checkout button {
+    cursor: pointer
+}
+
+.checkout h1,
+.checkout h2 {
+    color: var(--ink)
+}
+
+.checkout-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 72px;
+    color: #d5d9de;
+    background: #1c2026;
+    box-shadow: 0 0 0 100vmax #1c2026;
+    clip-path: inset(0 -100vmax)
+}
+
+.checkout-topo img {
+    width: 205px
+}
+
+.checkout-topo button,
+.checkout-topo span {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    border: 0;
+    color: inherit;
+    background: none;
+    font-size: .72rem
+}
+
+.checkout-topo button:hover {
+    color: var(--yellow)
+}
+
+.checkout-etapas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 1.7rem 0
+}
+
+.checkout-etapas>div {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    color: #8c949d
+}
+
+.checkout-etapas div span {
+    display: grid;
+    place-items: center;
+    width: 27px;
+    height: 27px;
+    border: 1px solid #cbd0d5;
+    border-radius: 50%;
+    background: #fff;
+    font-size: .68rem;
+    font-weight: 800
+}
+
+.checkout-etapas div strong {
+    font-size: .7rem
+}
+
+.checkout-etapas div.ativo {
+    color: var(--ink)
+}
+
+.checkout-etapas div.ativo span {
+    border-color: var(--yellow);
+    background: var(--yellow)
+}
+
+.checkout-etapas i {
+    flex: 1;
+    height: 1px;
+    margin: 0 .8rem;
+    background: #d2d6da
+}
+
+.checkout-conteudo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 370px;
+    gap: 1.5rem;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding-bottom: 5rem
+}
+
+.checkout-formulario,
+.checkout-resumo {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff
+}
+
+.checkout-formulario {
+    padding: clamp(1.5rem, 4vw, 2.8rem)
+}
+
+.checkout-etiqueta {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .65rem;
+    color: #7a6300;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase
+}
+
+.checkout-etiqueta:before {
+    content: '';
+    width: 22px;
+    height: 2px;
+    background: var(--yellow)
+}
+
+.checkout-titulo h1 {
+    margin: 0 0 .55rem;
+    font-size: clamp(1.8rem, 3vw, 2.35rem);
+    letter-spacing: -.035em
+}
+
+.checkout-titulo p {
+    max-width: 580px;
+    margin-bottom: 2rem;
+    color: var(--muted);
+    font-size: .84rem;
+    line-height: 1.6
+}
+
+.checkout-erro {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+    margin-bottom: 1.2rem;
+    padding: .8rem;
+    border: 1px solid #efc1be;
+    border-left: 4px solid #ba332c;
+    border-radius: 4px;
+    color: #9b2d27;
+    background: #fff5f4;
+    font-size: .72rem;
+    line-height: 1.45
+}
+
+.checkout-erro svg {
+    flex: none
+}
+
+.checkout-erro span {
+    display: flex;
+    flex-direction: column
+}
+
+.checkout-erro strong {
+    font-size: .75rem
+}
+
+.checkout form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.1rem
+}
+
+.checkout-campo--inteiro,
+.checkout-privacidade,
+.checkout-enviar {
+    grid-column: 1/-1
+}
+
+.checkout-campo label {
+    display: block;
+    margin-bottom: .4rem;
+    color: #353b44;
+    font-size: .73rem;
+    font-weight: 750
+}
+
+.checkout-campo label em {
+    color: #ae2c25;
+    font-style: normal
+}
+
+.checkout-campo label small {
+    color: #89919a;
+    font-weight: 400
+}
+
+.checkout-campo>div {
+    position: relative
+}
+
+.checkout-campo input,
+.checkout-campo textarea {
+    width: 100%;
+    border: 1px solid #ccd2d7;
+    border-radius: 4px;
+    outline: 0 !important;
+    color: var(--ink);
+    background: #fff;
+    font-size: .82rem
+}
+
+.checkout-campo input {
+    height: 48px;
+    padding: 0 2.6rem 0 .85rem
+}
+
+.checkout-campo textarea {
+    padding: .8rem;
+    resize: vertical;
+    line-height: 1.5
+}
+
+.checkout-campo input:focus,
+.checkout-campo textarea:focus {
+    border-color: #a68800;
+    box-shadow: 0 0 0 3px rgba(246, 200, 0, .2)
+}
+
+.checkout-campo>div svg {
+    position: absolute;
+    top: 50%;
+    right: .85rem;
+    color: #9299a1;
+    transform: translateY(-50%)
+}
+
+.checkout-privacidade {
+    display: flex;
+    gap: .55rem;
+    padding: .75rem;
+    border-radius: 4px;
+    color: #7d6800;
+    background: #fff9dc
+}
+
+.checkout-privacidade p {
+    color: #675f3b;
+    font-size: .68rem;
+    line-height: 1.45
+}
+
+.checkout-enviar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    height: 52px;
+    border: 0;
+    border-radius: 4px;
+    color: #17191d;
+    background: var(--yellow);
+    font-size: .8rem;
+    font-weight: 800
+}
+
+.checkout-enviar:hover:not(:disabled) {
+    background: #dfb600
+}
+
+.checkout-enviar:disabled {
+    opacity: .5;
+    cursor: not-allowed
+}
+
+.checkout-girando {
+    animation: checkout-girar .8s linear infinite
+}
+
+.checkout-resumo {
+    align-self: start;
+    overflow: hidden
+}
+
+.checkout-resumo-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 1.3rem;
+    color: #fff;
+    background: #1c2026
+}
+
+.checkout-resumo-topo span {
+    color: var(--yellow);
+    font-size: .63rem;
+    text-transform: uppercase
+}
+
+.checkout-resumo-topo h2 {
+    margin: .15rem 0 0;
+    color: #fff;
+    font-size: 1.08rem
+}
+
+.checkout-resumo-topo button {
+    border: 0;
+    color: var(--yellow);
+    background: none;
+    font-size: .68rem;
+    font-weight: 700
+}
+
+.checkout-resumo ul {
+    max-height: 330px;
+    padding: 0 1.3rem;
+    overflow: auto;
+    list-style: none
+}
+
+.checkout-resumo li {
+    display: grid;
+    grid-template-columns: 55px 1fr;
+    gap: .7rem;
+    align-items: center;
+    padding: .85rem 0;
+    border-bottom: 1px solid var(--line)
+}
+
+.checkout-resumo li img,
+.checkout-inicial {
+    display: grid;
+    place-items: center;
+    width: 55px;
+    height: 55px;
+    border-radius: 4px;
+    object-fit: cover;
+    color: #a4abb2;
+    background: #eceeef;
+    font-size: 1.3rem;
+    font-weight: 800
+}
+
+.checkout-resumo li strong {
+    display: block;
+    font-size: .75rem;
+    line-height: 1.35
+}
+
+.checkout-resumo li small {
+    color: var(--muted);
+    font-size: .65rem
+}
+
+.checkout-aviso-preco {
+    margin: 1rem 1.3rem;
+    padding: .85rem;
+    border-left: 3px solid var(--yellow);
+    background: #f6f7f8
+}
+
+.checkout-aviso-preco strong {
+    font-size: .75rem
+}
+
+.checkout-aviso-preco p {
+    margin-top: .25rem;
+    color: var(--muted);
+    font-size: .67rem;
+    line-height: 1.45
+}
+
+.checkout-beneficios {
+    display: grid;
+    gap: .5rem;
+    padding: 0 1.3rem 1.3rem;
+    color: #59636d;
+    font-size: .67rem
+}
+
+.checkout-beneficios span {
+    display: flex;
+    align-items: center;
+    gap: .4rem
+}
+
+.checkout-beneficios svg {
+    color: #8a7100
+}
+
+.checkout-vazio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .65rem;
+    padding: 3rem 1rem;
+    text-align: center
+}
+
+.checkout-vazio svg {
+    color: #937700
+}
+
+.checkout-vazio strong {
+    font-size: .8rem
+}
+
+.checkout-vazio button {
+    padding: .55rem .8rem;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #fff;
+    font-size: .68rem
+}
+
+.checkout--sucesso {
+    display: flex;
+    flex-direction: column
+}
+
+.checkout--sucesso .checkout-topo {
+    justify-content: center
+}
+
+.checkout-sucesso {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-width: 620px;
+    margin: auto;
+    padding: 3rem 1rem;
+    text-align: center
+}
+
+.checkout-sucesso-icone {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    margin-bottom: 1.3rem;
+    border-radius: 50%;
+    color: #fff;
+    background: #23864b;
+    box-shadow: 0 0 0 10px #e5f5eb
+}
+
+.checkout-sucesso h1 {
+    margin: 0 0 .75rem;
+    font-size: clamp(2rem, 4vw, 3rem);
+    letter-spacing: -.04em
+}
+
+.checkout-sucesso>p {
+    max-width: 570px;
+    color: var(--muted);
+    font-size: .88rem;
+    line-height: 1.65
+}
+
+.checkout-protocolo {
+    display: flex;
+    flex-direction: column;
+    margin: 1.7rem 0;
+    padding: .9rem 2.2rem;
+    border: 1px dashed #bbc1c7;
+    border-radius: 5px;
+    background: #fff
+}
+
+.checkout-protocolo small {
+    color: var(--muted);
+    font-size: .65rem
+}
+
+.checkout-protocolo strong {
+    font-size: 1.25rem
+}
+
+.checkout-sucesso-acoes {
+    display: flex;
+    gap: .7rem
+}
+
+.checkout-sucesso-acoes button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    border-radius: 4px;
+    font-size: .73rem;
+    font-weight: 750
+}
+
+.checkout-secundario {
+    border: 1px solid #c8cdd2;
+    background: #fff
+}
+
+.checkout-primario {
+    border: 1px solid var(--yellow);
+    background: var(--yellow)
+}
+
+@keyframes checkout-girar {
+    to {
+        transform: rotate(360deg)
+    }
+}
+
+@media(max-width:850px) {
+    .checkout-conteudo {
+        grid-template-columns: 1fr
+    }
+
+    .checkout-resumo {
+        grid-row: 1
+    }
+
+    .checkout-resumo ul {
+        max-height: 230px
+    }
+
+    .checkout-topo span {
+        display: none
+    }
+}
+
+@media(max-width:600px) {
+    .checkout-topo {
+        min-height: 62px
+    }
+
+    .checkout-topo img {
+        width: 160px
+    }
+
+    .checkout-topo button {
+        font-size: 0;
+        gap: 0
+    }
+
+    .checkout-topo button svg {
+        width: 19px;
+        height: 19px
+    }
+
+    .checkout-etapas div strong {
+        display: none
+    }
+
+    .checkout-etapas {
+        padding: 1.2rem 2rem
+    }
+
+    .checkout-conteudo {
+        padding-bottom: 2rem
+    }
+
+    .checkout-formulario {
+        padding: 1.3rem
+    }
+
+    .checkout form {
+        grid-template-columns: 1fr
+    }
+
+    .checkout-campo {
+        grid-column: 1/-1
+    }
+
+    .checkout-sucesso-acoes {
+        width: 100%;
+        flex-direction: column
+    }
+
+    .checkout-sucesso-acoes button {
+        width: 100%
+    }
+}
+
+@media(prefers-reduced-motion:reduce) {
+    .checkout-girando {
+        animation: none
+    }
+}
