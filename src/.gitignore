@@ -1,0 +1,17 @@
+# Dependências
+node_modules/
+/backend/node_modules/
+/frontend/node_modules/
+
+# Variáveis de ambiente
+.env
+/backend/.env
+
+# Build de produção do Vite
+/frontend/dist/
+
+# Logs de sistema
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+.DS_Store
