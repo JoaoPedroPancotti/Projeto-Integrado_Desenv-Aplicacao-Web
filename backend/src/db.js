@@ -8,7 +8,7 @@ types.setTypeParser(20, Number);   // bigint
 types.setTypeParser(1700, Number); // numeric (preços e quantidades)
 
 if (!process.env.DATABASE_URL) {
-  console.error('❌ DATABASE_URL não definida no .env (veja backend/.env.example).');
+  console.error('DATABASE_URL não definida no .env (veja backend/.env.example).');
 }
 
 const local = /@(localhost|127\.0\.0\.1)[:/]/.test(process.env.DATABASE_URL || '');
@@ -52,8 +52,8 @@ async function getConnection() {
 
 if (!process.env.VERCEL) {
   pool.query('SELECT 1')
-    .then(() => console.log('✅ Conectado ao PostgreSQL com sucesso!'))
-    .catch(err => console.error('❌ Erro ao conectar ao PostgreSQL:', err.message));
+    .then(() => console.log('Conectado ao PostgreSQL com sucesso!'))
+    .catch(err => console.error('Erro ao conectar ao PostgreSQL:', err.message));
 }
 
 module.exports = { query, getConnection, pool };

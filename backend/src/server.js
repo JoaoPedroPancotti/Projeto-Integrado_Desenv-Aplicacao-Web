@@ -42,10 +42,13 @@ app.post('/api/produtos', exigirLogin, async (req, res) => {
   }
 });
 
+// Só o que o site precisa: custo, saldo, fornecedor e localização ficam restritos ao painel
+const CAMPOS_PUBLICOS = 'id, categoria_id, codigo, nome, marca, descricao, preco, unidade, imagem_url, ativo';
+
 // [R] READ - Listar os produtos ativos (os desativados no painel somem do site)
 app.get('/api/produtos', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM produtos WHERE ativo ORDER BY nome');
+    const [rows] = await db.query(`SELECT ${CAMPOS_PUBLICOS} FROM produtos WHERE ativo ORDER BY nome`);
     return res.status(200).json(rows);
   } catch (error) {
     console.error(error);
@@ -57,7 +60,7 @@ app.get('/api/produtos', async (req, res) => {
 app.get('/api/produtos/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const [rows] = await db.query('SELECT * FROM produtos WHERE id = ?', [id]);
+    const [rows] = await db.query(`SELECT ${CAMPOS_PUBLICOS} FROM produtos WHERE id = ? AND ativo`, [id]);
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Produto não encontrado' });
     }
@@ -182,10 +185,10 @@ module.exports = app;
 if (require.main === module) {
   const PORT = process.env.PORT || 3006;
   prepararBanco()
-    .catch(erro => console.error('❌ Erro ao preparar o banco:', erro.message))
+    .catch(erro => console.error('Erro ao preparar o banco:', erro.message))
     .finally(() => {
       app.listen(PORT, () => {
-        console.log(`🚀 Servidor rodando na porta ${PORT}`);
+        console.log(`Servidor rodando na porta ${PORT}`);
       });
     });
 }

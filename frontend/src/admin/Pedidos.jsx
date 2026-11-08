@@ -67,12 +67,12 @@ export default function Pedidos() {
                 {filtrados.map(pedido => (
                   <tr key={pedido.id} onClick={() => navigate(`/admin/pedidos/${pedido.id}`)} className={pedido.status === 'Pendente' ? 'adm-linha-nova' : ''}>
                     <td><strong>{protocolo(pedido.id)}</strong></td>
-                    <td>{pedido.cliente_nome}<small>{pedido.cliente_telefone}</small></td>
-                    <td>{pedido.qtd_itens} {pedido.qtd_itens === 1 ? 'produto' : 'produtos'}{pedido.itens_sem_preco > 0 && <small className="adm-texto-alerta">{pedido.itens_sem_preco} sem preço</small>}</td>
-                    <td>{pedido.subtotal ? <strong>{dinheiro(pedido.total)}</strong> : <span className="adm-mudo">A precificar</span>}</td>
-                    <td><Selo status={pedido.status} /></td>
-                    <td title={dataHora(pedido.criado_em)}>{haQuanto(pedido.criado_em)}<small>{dataHora(pedido.criado_em)}</small></td>
-                    <td onClick={e => e.stopPropagation()}>
+                    <td data-rotulo="Cliente">{pedido.cliente_nome}<small>{pedido.cliente_telefone}</small></td>
+                    <td data-rotulo="Itens">{pedido.qtd_itens} {pedido.qtd_itens === 1 ? 'produto' : 'produtos'}{pedido.itens_sem_preco > 0 && <small className="adm-texto-alerta">{pedido.itens_sem_preco} sem preço</small>}</td>
+                    <td data-rotulo="Total">{pedido.subtotal ? <strong>{dinheiro(pedido.total)}</strong> : <span className="adm-mudo">A precificar</span>}</td>
+                    <td data-rotulo="Status"><Selo status={pedido.status} /></td>
+                    <td data-rotulo="Recebido" title={dataHora(pedido.criado_em)}>{haQuanto(pedido.criado_em)}<small>{dataHora(pedido.criado_em)}</small></td>
+                    <td data-acoes onClick={e => e.stopPropagation()}>
                       <a className="adm-icone-botao adm-icone-botao--whats" href={linkWhatsApp(pedido.cliente_telefone)} target="_blank" rel="noreferrer" title="Conversar no WhatsApp" aria-label={`Conversar com ${pedido.cliente_nome} no WhatsApp`}><MessageCircle size={17} /></a>
                     </td>
                   </tr>

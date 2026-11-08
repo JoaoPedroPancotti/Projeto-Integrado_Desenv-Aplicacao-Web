@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
-import { ClipboardList, Clock, CalendarDays, BadgeDollarSign, Users, ArrowRight, TriangleAlert, RefreshCw } from 'lucide-react';
+import { ClipboardList, Clock, CalendarDays, BadgeDollarSign, Warehouse, ArrowRight, TriangleAlert, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 import { Carregando, Selo, Vazio } from './componentes';
 import { STATUS, classeStatus, dinheiro, haQuanto, protocolo, quantidade } from './util';
@@ -41,7 +41,7 @@ export default function Painel() {
     ['Em andamento', resumo.por_status['Em Andamento'], 'orçamentos sendo montados', Clock, '/admin/pedidos?status=Em Andamento'],
     ['Pedidos hoje', resumo.hoje, `${resumo.ultimos30} nos últimos 30 dias`, CalendarDays, '/admin/pedidos'],
     ['Fechado no mês', dinheiro(resumo.vendido_mes), 'aprovados e concluídos', BadgeDollarSign, '/admin/pedidos?status=Aprovado'],
-    ['Clientes', resumo.clientes, 'cadastrados pelos pedidos', Users, '/admin/clientes'],
+    ['Valor em estoque', dinheiro(resumo.valor_estoque), 'pelo custo médio', Warehouse, '/admin/estoque'],
   ];
 
   return (
@@ -54,6 +54,18 @@ export default function Painel() {
         </div>
         <Link to="/admin/pedidos" className="adm-botao adm-botao--primario">Ver pedidos <ArrowRight size={17} /></Link>
       </div>
+
+      {(resumo.estoque_baixo > 0 || resumo.estoque_negativo > 0) && (
+        <Link to={`/admin/estoque?situacao=${resumo.estoque_negativo > 0 ? 'negativo' : 'baixo'}`} className="adm-alerta adm-alerta--perigo">
+          <TriangleAlert size={19} />
+          <span>
+            {resumo.estoque_baixo > 0 && <strong>{resumo.estoque_baixo} {resumo.estoque_baixo === 1 ? 'produto está' : 'produtos estão'} no estoque mínimo ou abaixo. </strong>}
+            {resumo.estoque_negativo > 0 && <strong>{resumo.estoque_negativo} com saldo negativo. </strong>}
+            Veja a lista de reposição em Estoque › Relatórios.
+          </span>
+          <ArrowRight size={17} />
+        </Link>
+      )}
 
       {resumo.produtos_sem_preco > 0 && (
         <Link to="/admin/produtos?filtro=sem-preco" className="adm-alerta">
@@ -108,20 +120,22 @@ export default function Painel() {
         <section className="adm-cartao">
           <header className="adm-cartao-topo"><div><h2>Pedidos recentes</h2><p>Os últimos que chegaram</p></div><Link to="/admin/pedidos">Ver todos</Link></header>
           {resumo.recentes.length ? (
+            <div className="adm-tabela-rolagem">
             <table className="adm-tabela">
               <thead><tr><th>Pedido</th><th>Cliente</th><th>Total</th><th>Status</th><th>Quando</th></tr></thead>
               <tbody>
                 {resumo.recentes.map(pedido => (
                   <tr key={pedido.id} onClick={() => navigate(`/admin/pedidos/${pedido.id}`)}>
                     <td><strong>{protocolo(pedido.id)}</strong></td>
-                    <td>{pedido.cliente_nome}<small>{pedido.qtd_itens} {pedido.qtd_itens === 1 ? 'produto' : 'produtos'}</small></td>
-                    <td>{pedido.subtotal ? dinheiro(pedido.total) : <span className="adm-mudo">A precificar</span>}</td>
-                    <td><Selo status={pedido.status} /></td>
-                    <td className="adm-mudo">{haQuanto(pedido.criado_em)}</td>
+                    <td data-rotulo="Cliente">{pedido.cliente_nome}<small>{pedido.qtd_itens} {pedido.qtd_itens === 1 ? 'produto' : 'produtos'}</small></td>
+                    <td data-rotulo="Total">{pedido.subtotal ? dinheiro(pedido.total) : <span className="adm-mudo">A precificar</span>}</td>
+                    <td data-rotulo="Status"><Selo status={pedido.status} /></td>
+                    <td data-rotulo="Quando" className="adm-mudo">{haQuanto(pedido.criado_em)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           ) : <Vazio titulo="Nenhum pedido ainda" texto="Os pedidos feitos no site aparecem aqui." />}
         </section>
 

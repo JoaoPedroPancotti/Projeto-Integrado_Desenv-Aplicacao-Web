@@ -50,3 +50,82 @@ export function linkWhatsApp(telefone, texto = '') {
 }
 
 export const mensagemErro = (erro, padrao) => erro.response?.data?.erro || padrao;
+
+// ==========================================
+// ESTOQUE
+// ==========================================
+
+// sinal: +1 entra, -1 sai, 0 = o sistema calcula (ajuste/inventário)
+export const TIPOS_MOVIMENTO = {
+  entrada: { nome: 'Entrada', descricao: 'Compra ou recebimento de mercadoria', sinal: 1 },
+  devolucao: { nome: 'Devolução', descricao: 'Cliente devolveu a mercadoria', sinal: 1 },
+  saida: { nome: 'Saída', descricao: 'Uso interno ou retirada sem pedido', sinal: -1 },
+  perda: { nome: 'Perda', descricao: 'Quebra, avaria ou vencimento', sinal: -1 },
+  ajuste: { nome: 'Ajuste', descricao: 'Corrigir o saldo para o valor certo', sinal: 0 },
+  venda: { nome: 'Venda', descricao: 'Baixa automática do pedido concluído', sinal: -1 },
+  estorno: { nome: 'Estorno', descricao: 'Pedido reaberto ou excluído', sinal: 1 },
+  inventario: { nome: 'Inventário', descricao: 'Diferença encontrada na contagem', sinal: 0 },
+};
+
+// Tipos que a pessoa lança à mão (venda, estorno e inventário são automáticos)
+export const TIPOS_MANUAIS = ['entrada', 'saida', 'perda', 'devolucao', 'ajuste'];
+
+export const SITUACOES_ESTOQUE = {
+  ok: 'Normal',
+  baixo: 'Abaixo do mínimo',
+  zerado: 'Sem estoque',
+  negativo: 'Negativo',
+  excesso: 'Acima do máximo',
+  'nao-controla': 'Não controla',
+};
+
+export function situacaoEstoque(p) {
+  if (!p.controla_estoque) return 'nao-controla';
+  if (p.estoque < 0) return 'negativo';
+  if (p.estoque === 0) return 'zerado';
+  if (p.estoque_minimo !== null && p.estoque_minimo !== undefined && p.estoque <= p.estoque_minimo) return 'baixo';
+  if (p.estoque_maximo !== null && p.estoque_maximo !== undefined && p.estoque > p.estoque_maximo) return 'excesso';
+  return 'ok';
+}
+
+// Margem sobre o preço de venda
+export const margem = (preco, custo) => (preco && custo !== null && custo !== undefined ? ((preco - custo) / preco) * 100 : null);
+
+export const percentual = v => (v === null || v === undefined || Number.isNaN(v)
+  ? '—'
+  : `${Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`);
+
+// Aceita "1,5" e "1.5"; vazio vira null
+export const lerNumero = v => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.')));
+
+export const hojeISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Planilha CSV que abre direto no Excel em português (separador ";" e vírgula decimal)
+export function baixarCSV(nomeArquivo, colunas, linhas) {
+  const celula = v => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'number') return String(Math.round(v * 10000) / 10000).replace('.', ',');
+    const s = String(v);
+    return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const conteudo = [colunas.map(c => c[0]), ...linhas.map(l => colunas.map(([, ler]) => ler(l)))]
+    .map(linha => linha.map(celula).join(';'))
+    .join('\r\n');
+  const blob = new Blob([`﻿${conteudo}`], { type: 'text/csv;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${nomeArquivo}-${hojeISO()}.csv`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+// Busca de produto por código, código de barras, nome ou marca
+export const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+export const produtoCombina = (p, termo) => {
+  const t = semAcento(termo).trim();
+  if (!t) return true;
+  return semAcento(`${p.codigo} ${p.codigo_barras || ''} ${p.nome} ${p.marca || ''} ${p.descricao || ''}`).includes(t);
+};

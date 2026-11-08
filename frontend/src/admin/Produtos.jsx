@@ -1,42 +1,65 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useOutletContext, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, Package, ImageUp, LoaderCircle, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
+import { Plus, Search, Pencil, Trash2, Package, X, ArrowLeftRight, Download } from 'lucide-react';
 import api from '../services/api';
-import { Carregando, Modal, Vazio } from './componentes';
-import { UNIDADES, dinheiro, mensagemErro } from './util';
+import { Carregando, SeloEstoque, Vazio } from './componentes';
+import FormProduto from './FormProduto';
+import MovimentarEstoque from './MovimentarEstoque';
+import { baixarCSV, dinheiro, margem, mensagemErro, percentual, produtoCombina, quantidade, situacaoEstoque, SITUACOES_ESTOQUE } from './util';
 
-const FILTROS = [['', 'Todos'], ['ativos', 'No site'], ['inativos', 'Desativados'], ['sem-preco', 'Sem preço']];
+const FILTROS = [
+  ['', 'Todos'], ['ativos', 'No site'], ['inativos', 'Desativados'], ['sem-preco', 'Sem preço'], ['sem-custo', 'Sem custo'],
+  ['baixo', 'Abaixo do mínimo'], ['zerado', 'Sem estoque'], ['negativo', 'Negativo'],
+];
+
+function passaFiltro(p, filtro) {
+  switch (filtro) {
+    case 'ativos': return p.ativo;
+    case 'inativos': return !p.ativo;
+    case 'sem-preco': return p.ativo && p.preco === null;
+    case 'sem-custo': return p.ativo && p.controla_estoque && p.custo === null;
+    case 'baixo': case 'zerado': case 'negativo': return situacaoEstoque(p) === filtro;
+    default: return true;
+  }
+}
 
 export default function Produtos() {
   const { avisar } = useOutletContext();
+  const navigate = useNavigate();
   const [parametros, setParametros] = useSearchParams();
   const [produtos, setProdutos] = useState(null);
   const [categorias, setCategorias] = useState([]);
+  const [fornecedores, setFornecedores] = useState([]);
   const [busca, setBusca] = useState('');
   const [categoria, setCategoria] = useState('');
   const [editando, setEditando] = useState(null);
+  const [movimentando, setMovimentando] = useState(null);
   const filtro = parametros.get('filtro') || '';
+  const fornecedor = parametros.get('fornecedor') || '';
 
   const carregar = () => api.get('/admin/produtos').then(({ data }) => setProdutos(data)).catch(() => setProdutos([]));
   useEffect(() => {
     carregar();
     api.get('/admin/categorias').then(({ data }) => setCategorias(data)).catch(() => {});
+    api.get('/admin/fornecedores').then(({ data }) => setFornecedores(data)).catch(() => {});
   }, []);
 
-  const filtrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    return (produtos || []).filter(p => {
-      if (filtro === 'ativos' && !p.ativo) return false;
-      if (filtro === 'inativos' && p.ativo) return false;
-      if (filtro === 'sem-preco' && (p.preco !== null || !p.ativo)) return false;
-      if (categoria && String(p.categoria_id) !== categoria) return false;
-      return !termo || p.nome.toLowerCase().includes(termo) || (p.descricao || '').toLowerCase().includes(termo);
-    });
-  }, [produtos, busca, categoria, filtro]);
+  const mudarParametro = (chave, valor) => {
+    const novos = new URLSearchParams(parametros);
+    if (valor) novos.set(chave, valor); else novos.delete(chave);
+    setParametros(novos);
+  };
+
+  const filtrados = useMemo(() => (produtos || []).filter(p => passaFiltro(p, filtro)
+    && (!categoria || String(p.categoria_id) === categoria)
+    && (!fornecedor || String(p.fornecedor_id) === fornecedor)
+    && produtoCombina(p, busca)), [produtos, busca, categoria, fornecedor, filtro]);
+
+  const contagem = useMemo(() => Object.fromEntries(FILTROS.map(([f]) => [f, (produtos || []).filter(p => passaFiltro(p, f)).length])), [produtos]);
 
   const alternarAtivo = async produto => {
     try {
-      await api.put(`/admin/produtos/${produto.id}`, { ...produto, ativo: !produto.ativo });
+      await api.patch(`/admin/produtos/${produto.id}/ativo`, { ativo: !produto.ativo });
       setProdutos(lista => lista.map(p => (p.id === produto.id ? { ...p, ativo: !produto.ativo } : p)));
       avisar(produto.ativo ? `"${produto.nome}" saiu do site.` : `"${produto.nome}" voltou para o site.`);
     } catch (falha) {
@@ -55,21 +78,34 @@ export default function Produtos() {
     }
   };
 
+  const exportar = () => baixarCSV('produtos', [
+    ['Código', p => p.codigo], ['Código de barras', p => p.codigo_barras], ['Produto', p => p.nome], ['Marca', p => p.marca],
+    ['Categoria', p => p.categoria_nome], ['Fornecedor', p => p.fornecedor_nome], ['Unidade', p => p.unidade],
+    ['Estoque', p => p.estoque], ['Reservado', p => p.reservado], ['Disponível', p => p.disponivel],
+    ['Mínimo', p => p.estoque_minimo], ['Máximo', p => p.estoque_maximo], ['Localização', p => p.localizacao],
+    ['Custo', p => p.custo], ['Preço', p => p.preco], ['Margem %', p => margem(p.preco, p.custo)],
+    ['Situação', p => SITUACOES_ESTOQUE[situacaoEstoque(p)]], ['No site', p => (p.ativo ? 'Sim' : 'Não')],
+  ], filtrados);
+
   return (
     <>
       <div className="adm-cabecalho">
-        <div><span className="adm-etiqueta">Catálogo</span><h1>Produtos</h1><p>O que está ativo aparece no site. O preço cadastrado entra automaticamente nos novos pedidos.</p></div>
-        <button className="adm-botao adm-botao--primario" onClick={() => setEditando({})}><Plus size={17} /> Novo produto</button>
+        <div><span className="adm-etiqueta">Estoque</span><h1>Produtos</h1><p>Cadastro completo: código, código de barras, custo, preço, estoque mínimo/máximo e localização. Clique em um produto para ver o histórico.</p></div>
+        <div className="adm-acoes">
+          <button className="adm-botao" onClick={exportar} disabled={!filtrados.length}><Download size={16} /> Exportar</button>
+          <button className="adm-botao adm-botao--primario" onClick={() => setEditando({})}><Plus size={17} /> Novo produto</button>
+        </div>
       </div>
 
       <div className="adm-abas">
-        {FILTROS.map(([valor, nome]) => <button key={valor} className={filtro === valor ? 'ativo' : ''} onClick={() => setParametros(valor ? { filtro: valor } : {})}>{nome}</button>)}
+        {FILTROS.map(([valor, nome]) => <button key={valor} className={filtro === valor ? 'ativo' : ''} onClick={() => mudarParametro('filtro', valor)}>{nome} <em>{contagem[valor]}</em></button>)}
       </div>
 
       <section className="adm-cartao adm-cartao--sem-espaco">
         <div className="adm-barra">
-          <label className="adm-busca"><Search size={17} /><input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar produto" />{busca && <button onClick={() => setBusca('')} aria-label="Limpar busca"><X size={15} /></button>}</label>
+          <label className="adm-busca"><Search size={17} /><input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Código, código de barras, nome ou marca" />{busca && <button onClick={() => setBusca('')} aria-label="Limpar busca"><X size={15} /></button>}</label>
           <select className="adm-select" value={categoria} onChange={e => setCategoria(e.target.value)} aria-label="Filtrar por categoria"><option value="">Todas as categorias</option>{categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select>
+          <select className="adm-select" value={fornecedor} onChange={e => mudarParametro('fornecedor', e.target.value)} aria-label="Filtrar por fornecedor"><option value="">Todos os fornecedores</option>{fornecedores.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}</select>
           <span className="adm-mudo">{filtrados.length} {filtrados.length === 1 ? 'produto' : 'produtos'}</span>
         </div>
 
@@ -77,29 +113,43 @@ export default function Produtos() {
         {produtos && !filtrados.length && <Vazio icone={Package} titulo="Nenhum produto encontrado" texto="Ajuste os filtros ou cadastre um novo produto." />}
         {produtos && filtrados.length > 0 && (
           <div className="adm-tabela-rolagem">
-            <table className="adm-tabela adm-tabela--estatica">
-              <thead><tr><th>Produto</th><th>Categoria</th><th>Preço</th><th>Pedidos</th><th>No site</th><th aria-label="Ações" /></tr></thead>
+            <table className="adm-tabela">
+              <thead><tr><th>Produto</th><th className="adm-col-opcional">Categoria</th><th>Estoque</th><th>Preço / custo</th><th>No site</th><th aria-label="Ações" /></tr></thead>
               <tbody>
-                {filtrados.map(produto => (
-                  <tr key={produto.id} className={produto.ativo ? '' : 'adm-linha-inativa'}>
-                    <td>
-                      <div className="adm-produto-celula">
-                        {produto.imagem_url ? <img src={produto.imagem_url} alt="" /> : <span className="adm-miniatura">{produto.nome.charAt(0)}</span>}
-                        <div><strong>{produto.nome}</strong>{produto.descricao && <small className="adm-uma-linha">{produto.descricao}</small>}</div>
-                      </div>
-                    </td>
-                    <td>{produto.categoria_nome || <span className="adm-mudo">Sem categoria</span>}</td>
-                    <td>{produto.preco !== null ? <><strong>{dinheiro(produto.preco)}</strong><small>por {produto.unidade || 'un'}</small></> : <span className="adm-texto-alerta">Sem preço</span>}</td>
-                    <td>{produto.pedidos}</td>
-                    <td><button className={`adm-interruptor ${produto.ativo ? 'ligado' : ''}`} role="switch" aria-checked={Boolean(produto.ativo)} onClick={() => alternarAtivo(produto)} aria-label={`Mostrar ${produto.nome} no site`}><span /></button></td>
-                    <td>
-                      <div className="adm-acoes-linha">
-                        <button className="adm-icone-botao" onClick={() => setEditando(produto)} title="Editar" aria-label={`Editar ${produto.nome}`}><Pencil size={16} /></button>
-                        <button className="adm-icone-botao" onClick={() => excluir(produto)} title="Excluir" aria-label={`Excluir ${produto.nome}`}><Trash2 size={16} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {filtrados.map(produto => {
+                  const m = margem(produto.preco, produto.custo);
+                  return (
+                    <tr key={produto.id} className={produto.ativo ? '' : 'adm-linha-inativa'} onClick={() => navigate(`/admin/produtos/${produto.id}`)}>
+                      <td>
+                        <div className="adm-produto-celula">
+                          {produto.imagem_url ? <img src={produto.imagem_url} alt="" /> : <span className="adm-miniatura">{produto.nome.charAt(0)}</span>}
+                          <div><strong>{produto.nome}</strong><small><code className="adm-codigo">{produto.codigo}</code>{produto.marca && ` · ${produto.marca}`}{produto.localizacao && ` · ${produto.localizacao}`}</small></div>
+                        </div>
+                      </td>
+                      <td data-rotulo="Categoria" className="adm-col-opcional">{produto.categoria_nome || <span className="adm-mudo">Sem categoria</span>}</td>
+                      <td data-rotulo="Estoque">
+                        {produto.controla_estoque ? (
+                          <>
+                            <strong className={produto.estoque < 0 ? 'adm-qtd-sai' : ''}>{quantidade(produto.estoque)} {produto.unidade || 'un'}</strong>
+                            <small>{produto.reservado > 0 ? `${quantidade(produto.disponivel)} disponível · ` : ''}<SeloEstoque produto={produto} /></small>
+                          </>
+                        ) : <span className="adm-mudo">Não controla</span>}
+                      </td>
+                      <td data-rotulo="Preço / custo">
+                        {produto.preco !== null ? <strong>{dinheiro(produto.preco)}</strong> : <span className="adm-texto-alerta">Sem preço</span>}
+                        <small>{produto.custo !== null ? `custo ${dinheiro(produto.custo)} · margem ${percentual(m)}` : 'sem custo'}</small>
+                      </td>
+                      <td data-rotulo="No site" onClick={e => e.stopPropagation()}><button className={`adm-interruptor ${produto.ativo ? 'ligado' : ''}`} role="switch" aria-checked={Boolean(produto.ativo)} onClick={() => alternarAtivo(produto)} aria-label={`Mostrar ${produto.nome} no site`}><span /></button></td>
+                      <td data-acoes onClick={e => e.stopPropagation()}>
+                        <div className="adm-acoes-linha">
+                          <button className="adm-icone-botao" onClick={() => setMovimentando(produto)} title="Movimentar estoque" aria-label={`Movimentar estoque de ${produto.nome}`}><ArrowLeftRight size={16} /></button>
+                          <button className="adm-icone-botao" onClick={() => setEditando(produto)} title="Editar" aria-label={`Editar ${produto.nome}`}><Pencil size={16} /></button>
+                          <button className="adm-icone-botao" onClick={() => excluir(produto)} title="Excluir" aria-label={`Excluir ${produto.nome}`}><Trash2 size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -109,88 +159,17 @@ export default function Produtos() {
       {editando && (
         <FormProduto
           produto={editando}
-          categorias={categorias}
           onFechar={() => setEditando(null)}
-          onSalvo={novo => { setEditando(null); carregar(); avisar(novo ? 'Produto cadastrado.' : 'Produto atualizado.'); }}
+          onSalvo={(novo, resposta) => { setEditando(null); carregar(); avisar(novo ? `Produto cadastrado com o código ${resposta?.codigo}.` : 'Produto atualizado.'); }}
+        />
+      )}
+      {movimentando && (
+        <MovimentarEstoque
+          produto={movimentando}
+          onFechar={() => setMovimentando(null)}
+          onSalvo={() => { setMovimentando(null); carregar(); avisar('Movimentação registrada.'); }}
         />
       )}
     </>
-  );
-}
-
-function FormProduto({ produto, categorias, onFechar, onSalvo }) {
-  const novo = !produto.id;
-  const [dados, setDados] = useState({
-    nome: produto.nome || '',
-    categoria_id: produto.categoria_id || '',
-    preco: produto.preco ?? '',
-    unidade: produto.unidade || 'un',
-    descricao: produto.descricao || '',
-    imagem_url: produto.imagem_url || '',
-    ativo: novo ? true : Boolean(produto.ativo),
-  });
-  const [erro, setErro] = useState('');
-  const [salvando, setSalvando] = useState(false);
-  const [enviandoFoto, setEnviandoFoto] = useState(false);
-  const arquivo = useRef(null);
-
-  const mudar = (campo, valor) => setDados(d => ({ ...d, [campo]: valor }));
-
-  const enviarFoto = async e => {
-    const foto = e.target.files?.[0];
-    if (!foto) return;
-    setEnviandoFoto(true);
-    setErro('');
-    try {
-      const corpo = new FormData();
-      corpo.append('imagem', foto);
-      const { data } = await api.post('/admin/upload', corpo);
-      mudar('imagem_url', data.url);
-    } catch (falha) {
-      setErro(mensagemErro(falha, 'Não foi possível enviar a foto.'));
-    } finally {
-      setEnviandoFoto(false);
-      e.target.value = '';
-    }
-  };
-
-  const salvar = async e => {
-    e.preventDefault();
-    setSalvando(true);
-    setErro('');
-    try {
-      if (novo) await api.post('/admin/produtos', dados);
-      else await api.put(`/admin/produtos/${produto.id}`, dados);
-      onSalvo(novo);
-    } catch (falha) {
-      setErro(mensagemErro(falha, 'Não foi possível salvar o produto.'));
-      setSalvando(false);
-    }
-  };
-
-  return (
-    <Modal titulo={novo ? 'Novo produto' : 'Editar produto'} onFechar={onFechar} largura={640}>
-      <form className="adm-formulario" onSubmit={salvar}>
-        {erro && <p className="adm-erro">{erro}</p>}
-        <div className="adm-foto-produto">
-          {dados.imagem_url ? <img src={dados.imagem_url} alt="" /> : <span className="adm-miniatura adm-miniatura--grande"><Package size={30} /></span>}
-          <div>
-            <button type="button" className="adm-botao adm-botao--pequeno" onClick={() => arquivo.current.click()} disabled={enviandoFoto}>{enviandoFoto ? <LoaderCircle size={15} className="adm-girando" /> : <ImageUp size={15} />} {dados.imagem_url ? 'Trocar foto' : 'Enviar foto'}</button>
-            {dados.imagem_url && <button type="button" className="adm-link" onClick={() => mudar('imagem_url', '')}>Remover foto</button>}
-            <small>JPG, PNG ou WEBP de até 5 MB.</small>
-            <input ref={arquivo} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={enviarFoto} />
-          </div>
-        </div>
-        <label className="adm-campo"><span>Nome *</span><input value={dados.nome} onChange={e => mudar('nome', e.target.value)} required autoFocus placeholder="Ex.: Cimento CP II 50kg" /></label>
-        <div className="adm-formulario--3">
-          <label className="adm-campo"><span>Categoria</span><select value={dados.categoria_id} onChange={e => mudar('categoria_id', e.target.value)}><option value="">Sem categoria</option>{categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
-          <label className="adm-campo"><span>Preço</span><div className="adm-campo-dinheiro"><span>R$</span><input type="number" min="0" step="0.01" value={dados.preco} onChange={e => mudar('preco', e.target.value)} placeholder="0,00" /></div></label>
-          <label className="adm-campo"><span>Vendido por</span><select value={dados.unidade} onChange={e => mudar('unidade', e.target.value)}>{UNIDADES.map(u => <option key={u}>{u}</option>)}</select></label>
-        </div>
-        <label className="adm-campo"><span>Descrição</span><textarea rows="3" value={dados.descricao} onChange={e => mudar('descricao', e.target.value)} placeholder="Aparece no card do produto no site." /></label>
-        <label className="adm-checkbox"><input type="checkbox" checked={dados.ativo} onChange={e => mudar('ativo', e.target.checked)} /> Mostrar este produto no site</label>
-        <footer className="adm-modal-rodape"><button type="button" className="adm-botao" onClick={onFechar}>Cancelar</button><button className="adm-botao adm-botao--primario" disabled={salvando || enviandoFoto}>{salvando && <LoaderCircle size={16} className="adm-girando" />} {novo ? 'Cadastrar produto' : 'Salvar alterações'}</button></footer>
-      </form>
-    </Modal>
   );
 }

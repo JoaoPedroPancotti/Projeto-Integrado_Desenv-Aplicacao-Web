@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "migrar": "node src/migrar.js"
+    "migrar": "node src/migrar.js",
+    "fotos:s3": "node src/migrarFotosS3.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1163.0",
     "@supabase/supabase-js": "^2.118.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",

@@ -72,10 +72,10 @@ export default function ClienteDetalhe() {
                   {cliente.pedidos.map(pedido => (
                     <tr key={pedido.id} onClick={() => navigate(`/admin/pedidos/${pedido.id}`)}>
                       <td><strong>{protocolo(pedido.id)}</strong></td>
-                      <td>{pedido.qtd_itens}</td>
-                      <td>{pedido.subtotal ? dinheiro(pedido.total) : <span className="adm-mudo">A precificar</span>}</td>
-                      <td><Selo status={pedido.status} /></td>
-                      <td className="adm-mudo">{dataHora(pedido.criado_em)}</td>
+                      <td data-rotulo="Itens">{pedido.qtd_itens}</td>
+                      <td data-rotulo="Total">{pedido.subtotal ? dinheiro(pedido.total) : <span className="adm-mudo">A precificar</span>}</td>
+                      <td data-rotulo="Status"><Selo status={pedido.status} /></td>
+                      <td data-rotulo="Data" className="adm-mudo">{dataHora(pedido.criado_em)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -6,13 +6,14 @@ const multer = require('multer');
 const db = require('./db');
 const { gerarToken, exigirLogin } = require('./auth');
 const { salvarFoto } = require('./armazenamento');
+const { sincronizarPedido, ErroEstoque } = require('./estoque');
+const rotasEstoque = require('./rotasEstoque');
 
 const router = express.Router();
 
 const STATUS = ['Pendente', 'Em Andamento', 'Respondido', 'Aprovado', 'Concluído', 'Cancelado'];
 
 // Códigos de erro do Postgres
-const ERRO_EM_USO = '23503';    // chave estrangeira: registro usado em outra tabela
 const ERRO_DUPLICADO = '23505'; // valor único repetido
 
 // O servidor do Supabase roda em UTC; "hoje" e "mês" são contados no horário de Brasília
@@ -22,6 +23,7 @@ const INICIO_DO_MES = "(date_trunc('month', now() AT TIME ZONE 'America/Sao_Paul
 
 // Captura erros das rotas async e devolve 500 com a mensagem
 const rota = fn => (req, res) => fn(req, res).catch(error => {
+  if (error instanceof ErroEstoque) return res.status(error.status).json({ erro: error.message });
   console.error(error);
   res.status(500).json({ erro: error.message });
 });
@@ -46,6 +48,35 @@ function comTotal(orcamento) {
   const subtotal = orcamento.subtotal || 0;
   const total = subtotal + (orcamento.valor_frete || 0) - (orcamento.desconto || 0);
   return { ...orcamento, subtotal, total: Math.max(total, 0) };
+}
+
+async function emTransacao(fn) {
+  const conexao = await db.getConnection();
+  try {
+    await conexao.beginTransaction();
+    const resultado = await fn(conexao);
+    await conexao.commit();
+    return resultado;
+  } catch (error) {
+    await conexao.rollback();
+    throw error;
+  } finally {
+    conexao.release();
+  }
+}
+
+// Baixa/estorno automático do estoque e registro no histórico do pedido
+async function registrarEstoque(conexao, orcamentoId, administradorId, status) {
+  const { baixados, estornados } = await sincronizarPedido(conexao, orcamentoId, administradorId);
+  if (!baixados && !estornados) return;
+  const partes = [];
+  if (baixados) partes.push(`baixa de ${baixados} ${baixados === 1 ? 'produto' : 'produtos'}`);
+  if (estornados) partes.push(`estorno de ${estornados} ${estornados === 1 ? 'produto' : 'produtos'}`);
+  const atual = status || (await conexao.query('SELECT status FROM orcamentos WHERE id = ?', [orcamentoId]))[0][0]?.status;
+  await conexao.query(
+    'INSERT INTO orcamento_historico (orcamento_id, administrador_id, status, descricao) VALUES (?, ?, ?, ?)',
+    [orcamentoId, administradorId, atual, `Estoque: ${partes.join(' e ')}`]
+  );
 }
 
 // ==========================================
@@ -80,7 +111,10 @@ router.get('/resumo', rota(async (req, res) => {
       (SELECT COUNT(*) FROM orcamentos) AS total_pedidos,
       (SELECT COUNT(*) FROM clientes) AS clientes,
       (SELECT COUNT(*) FROM produtos WHERE ativo) AS produtos_ativos,
-      (SELECT COUNT(*) FROM produtos WHERE ativo AND preco IS NULL) AS produtos_sem_preco`);
+      (SELECT COUNT(*) FROM produtos WHERE ativo AND preco IS NULL) AS produtos_sem_preco,
+      (SELECT COUNT(*) FROM produtos WHERE ativo AND controla_estoque AND estoque_minimo IS NOT NULL AND estoque <= estoque_minimo) AS estoque_baixo,
+      (SELECT COUNT(*) FROM produtos WHERE controla_estoque AND estoque < 0) AS estoque_negativo,
+      (SELECT COALESCE(SUM(estoque * custo), 0) FROM produtos WHERE controla_estoque AND estoque > 0) AS valor_estoque`);
   const [porDia] = await db.query(`
     SELECT to_char(${DIA_LOCAL('criado_em')}, 'YYYY-MM-DD') AS dia, COUNT(*) AS total
     FROM orcamentos WHERE ${DIA_LOCAL('criado_em')} > ${HOJE} - 14
@@ -126,7 +160,8 @@ router.get('/orcamentos/:id', rota(async (req, res) => {
   const [rows] = await db.query(`${SQL_ORCAMENTOS} WHERE o.id = ?`, [req.params.id]);
   if (!rows.length) return res.status(404).json({ erro: 'Pedido não encontrado.' });
   const [itens] = await db.query(`
-    SELECT i.*, p.nome, p.imagem_url, p.unidade, p.preco AS preco_referencia
+    SELECT i.*, p.nome, p.codigo, p.imagem_url, p.unidade, p.preco AS preco_referencia,
+           p.estoque, p.controla_estoque, p.localizacao
     FROM itens_orcamento i JOIN produtos p ON p.id = i.produto_id
     WHERE i.orcamento_id = ? ORDER BY i.id`, [req.params.id]);
   const [historico] = await db.query(`
@@ -169,6 +204,7 @@ router.put('/orcamentos/:id', rota(async (req, res) => {
       'INSERT INTO orcamento_historico (orcamento_id, administrador_id, status, descricao) VALUES (?, ?, ?, ?)',
       [id, req.admin.id, status || atual.status, descricao]
     );
+    await registrarEstoque(conexao, id, req.admin.id, status || atual.status);
 
     await conexao.commit();
     return res.json({ mensagem: 'Pedido atualizado.' });
@@ -184,72 +220,40 @@ router.post('/orcamentos/:id/itens', rota(async (req, res) => {
   const { produto_id, quantidade } = req.body;
   const [[produto]] = await db.query('SELECT preco FROM produtos WHERE id = ?', [produto_id]);
   if (!produto) return res.status(404).json({ erro: 'Produto não encontrado.' });
-  await db.query(
-    'INSERT INTO itens_orcamento (orcamento_id, produto_id, quantidade, preco_unitario) VALUES (?, ?, ?, ?)',
-    [req.params.id, produto_id, Number(quantidade) || 1, produto.preco]
-  );
+  await emTransacao(async conexao => {
+    await conexao.query(
+      'INSERT INTO itens_orcamento (orcamento_id, produto_id, quantidade, preco_unitario) VALUES (?, ?, ?, ?)',
+      [req.params.id, produto_id, Number(quantidade) || 1, produto.preco]
+    );
+    await registrarEstoque(conexao, req.params.id, req.admin.id);
+  });
   return res.status(201).json({ mensagem: 'Item adicionado.' });
 }));
 
 router.delete('/orcamentos/:id/itens/:itemId', rota(async (req, res) => {
-  await db.query('DELETE FROM itens_orcamento WHERE id = ? AND orcamento_id = ?', [req.params.itemId, req.params.id]);
+  await emTransacao(async conexao => {
+    await conexao.query('DELETE FROM itens_orcamento WHERE id = ? AND orcamento_id = ?', [req.params.itemId, req.params.id]);
+    await registrarEstoque(conexao, req.params.id, req.admin.id);
+  });
   return res.json({ mensagem: 'Item removido.' });
 }));
 
+// Excluir um pedido concluído devolve ao estoque o que tinha sido baixado
 router.delete('/orcamentos/:id', rota(async (req, res) => {
-  const [result] = await db.query('DELETE FROM orcamentos WHERE id = ?', [req.params.id]);
-  if (!result.affectedRows) return res.status(404).json({ erro: 'Pedido não encontrado.' });
+  const apagado = await emTransacao(async conexao => {
+    await sincronizarPedido(conexao, req.params.id, req.admin.id, { excluindo: true });
+    const [result] = await conexao.query('DELETE FROM orcamentos WHERE id = ?', [req.params.id]);
+    return result.affectedRows;
+  });
+  if (!apagado) return res.status(404).json({ erro: 'Pedido não encontrado.' });
   return res.json({ mensagem: 'Pedido excluído.' });
 }));
 
 // ==========================================
-// PRODUTOS
+// PRODUTOS, ESTOQUE, FORNECEDORES E RELATÓRIOS (rotasEstoque.js)
 // ==========================================
 
-router.get('/produtos', rota(async (req, res) => {
-  const [rows] = await db.query(`
-    SELECT p.*, c.nome AS categoria_nome,
-           (SELECT COUNT(DISTINCT orcamento_id) FROM itens_orcamento WHERE produto_id = p.id) AS pedidos
-    FROM produtos p LEFT JOIN categorias c ON c.id = p.categoria_id
-    ORDER BY p.nome`);
-  return res.json(rows);
-}));
-
-function dadosProduto(body) {
-  const { categoria_id, nome, descricao, preco, unidade, imagem_url, ativo } = body;
-  return [categoria_id || null, nome, descricao || null, valor(preco), unidade || null, imagem_url || null, !(ativo === false || ativo === 0)];
-}
-
-router.post('/produtos', rota(async (req, res) => {
-  if (!req.body.nome?.trim()) return res.status(400).json({ erro: 'Informe o nome do produto.' });
-  const [result] = await db.query(
-    'INSERT INTO produtos (categoria_id, nome, descricao, preco, unidade, imagem_url, ativo) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id',
-    dadosProduto(req.body)
-  );
-  return res.status(201).json({ id: result.insertId, mensagem: 'Produto criado.' });
-}));
-
-router.put('/produtos/:id', rota(async (req, res) => {
-  if (!req.body.nome?.trim()) return res.status(400).json({ erro: 'Informe o nome do produto.' });
-  const [result] = await db.query(
-    'UPDATE produtos SET categoria_id = ?, nome = ?, descricao = ?, preco = ?, unidade = ?, imagem_url = ?, ativo = ? WHERE id = ?',
-    [...dadosProduto(req.body), req.params.id]
-  );
-  if (!result.affectedRows) return res.status(404).json({ erro: 'Produto não encontrado.' });
-  return res.json({ mensagem: 'Produto atualizado.' });
-}));
-
-router.delete('/produtos/:id', rota(async (req, res) => {
-  try {
-    await db.query('DELETE FROM produtos WHERE id = ?', [req.params.id]);
-    return res.json({ mensagem: 'Produto excluído.' });
-  } catch (error) {
-    if (error.code === ERRO_EM_USO) {
-      return res.status(409).json({ erro: 'Este produto já aparece em pedidos e não pode ser excluído. Desative-o para tirar do site.' });
-    }
-    throw error;
-  }
-}));
+router.use(rotasEstoque);
 
 // Upload da foto do produto: vai para o Supabase Storage (ou backend/uploads) e devolve o endereço público
 const upload = multer({

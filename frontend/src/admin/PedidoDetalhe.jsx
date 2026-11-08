@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import {
   ArrowLeft, MessageCircle, Printer, Trash2, Plus, Save, LoaderCircle,
-  Phone, Mail, User, StickyNote, History, TriangleAlert, Send
+  Phone, Mail, User, StickyNote, History, TriangleAlert, Send, Warehouse
 } from 'lucide-react';
 import api from '../services/api';
 import { Carregando, Modal, Selo, Vazio } from './componentes';
@@ -77,6 +77,11 @@ export default function PedidoDetalhe() {
     const desconto = numero(form?.desconto) ?? 0;
     return { subtotal, semPreco, frete, desconto, total: Math.max(subtotal + frete - desconto, 0) };
   }, [itens, form]);
+
+  // Itens que o estoque atual não cobre (só importa enquanto o pedido não foi concluído)
+  const faltando = pedido && pedido.status !== 'Concluído' && !pedido.estoque_baixado
+    ? itens.filter(i => i.controla_estoque && (numero(i.quantidade) || 0) > i.estoque)
+    : [];
 
   if (erro) return <Vazio titulo="Pedido não encontrado" texto="Ele pode ter sido excluído."><Link className="adm-botao" to="/admin/pedidos">Voltar aos pedidos</Link></Vazio>;
   if (!pedido || !form) return <Carregando />;
@@ -182,6 +187,7 @@ export default function PedidoDetalhe() {
                 <div><h2>Itens do pedido</h2><p>Ajuste quantidades e preços unitários. O preço vem do cadastro do produto.</p></div>
                 <button className="adm-botao adm-botao--pequeno" onClick={() => setAdicionando(true)}><Plus size={15} /> Adicionar item</button>
               </header>
+              {faltando.length > 0 && <div className="adm-alerta adm-alerta--interno adm-alerta--perigo"><Warehouse size={17} /><span>Estoque insuficiente para {faltando.map(i => i.nome).join(', ')}. Dá para concluir assim mesmo, mas o saldo ficará negativo até a entrada da mercadoria.</span></div>}
               {totais.semPreco > 0 && <div className="adm-alerta adm-alerta--interno"><TriangleAlert size={17} /><span>{totais.semPreco} {totais.semPreco === 1 ? 'item está' : 'itens estão'} sem preço. Preencha antes de enviar ao cliente.</span></div>}
               <div className="adm-tabela-rolagem">
                 <table className="adm-tabela adm-tabela--itens">
@@ -194,7 +200,7 @@ export default function PedidoDetalhe() {
                           <td>
                             <div className="adm-produto-celula">
                               {item.imagem_url ? <img src={item.imagem_url} alt="" /> : <span className="adm-miniatura">{item.nome.charAt(0)}</span>}
-                              <div><strong>{item.nome}</strong>{item.preco_referencia !== null && preco !== item.preco_referencia && <small>Cadastro: {dinheiro(item.preco_referencia)}</small>}</div>
+                              <div><Link className="adm-link-forte" to={`/admin/produtos/${item.produto_id}`}>{item.nome}</Link><small><code className="adm-codigo">{item.codigo}</code>{item.controla_estoque && <> · <span className={!pedido.estoque_baixado && (numero(item.quantidade) || 0) > item.estoque ? 'adm-qtd-sai' : ''}>estoque {quantidade(item.estoque)} {item.unidade || 'un'}</span></>}{item.localizacao && ` · ${item.localizacao}`}</small>{item.preco_referencia !== null && preco !== item.preco_referencia && <small>Cadastro: {dinheiro(item.preco_referencia)}</small>}</div>
                             </div>
                           </td>
                           <td><label className="adm-campo-unidade"><input type="number" min="0" step="0.001" value={item.quantidade} onChange={e => mudarItem(item.id, 'quantidade', e.target.value)} aria-label={`Quantidade de ${item.nome}`} /><span>{item.unidade || 'un'}</span></label></td>
@@ -246,6 +252,13 @@ export default function PedidoDetalhe() {
               <h2 className="adm-titulo-lateral">Status</h2>
               <select className="adm-select-status" value={form.status} onChange={e => mudar('status', e.target.value)}>{STATUS.map(s => <option key={s}>{s}</option>)}</select>
               <p className="adm-mudo adm-descricao-status">{STATUS_DESCRICAO[form.status]}</p>
+              <p className="adm-nota-estoque">
+                <Warehouse size={14} />
+                {pedido.estoque_legado ? 'Pedido anterior ao controle de estoque: não movimenta o estoque.'
+                  : pedido.estoque_baixado ? 'Estoque já baixado. Se sair de “Concluído”, os itens voltam ao estoque.'
+                    : form.status === 'Aprovado' ? 'Os itens estão reservados. Ao marcar “Concluído”, o estoque é baixado automaticamente.'
+                      : 'Ao marcar “Concluído”, o estoque é baixado automaticamente.'}
+              </p>
             </section>
 
             <section className="adm-cartao">

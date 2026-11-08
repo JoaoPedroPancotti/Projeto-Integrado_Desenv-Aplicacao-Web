@@ -11,6 +11,13 @@ import Painel from './admin/Painel';
 import Pedidos from './admin/Pedidos';
 import PedidoDetalhe from './admin/PedidoDetalhe';
 import Produtos from './admin/Produtos';
+import ProdutoDetalhe from './admin/ProdutoDetalhe';
+import Estoque from './admin/Estoque';
+import Movimentacoes from './admin/Movimentacoes';
+import EntradaMercadoria from './admin/EntradaMercadoria';
+import Inventario from './admin/Inventario';
+import Fornecedores from './admin/Fornecedores';
+import Relatorios from './admin/Relatorios';
 import Categorias from './admin/Categorias';
 import Clientes from './admin/Clientes';
 import ClienteDetalhe from './admin/ClienteDetalhe';
@@ -44,6 +51,13 @@ export default function App() {
           <Route path="pedidos" element={<Pedidos />} />
           <Route path="pedidos/:id" element={<PedidoDetalhe />} />
           <Route path="produtos" element={<Produtos />} />
+          <Route path="produtos/:id" element={<ProdutoDetalhe />} />
+          <Route path="estoque" element={<Estoque />} />
+          <Route path="estoque/movimentacoes" element={<Movimentacoes />} />
+          <Route path="estoque/entrada" element={<EntradaMercadoria />} />
+          <Route path="estoque/inventario" element={<Inventario />} />
+          <Route path="estoque/relatorios" element={<Relatorios />} />
+          <Route path="fornecedores" element={<Fornecedores />} />
           <Route path="categorias" element={<Categorias />} />
           <Route path="clientes" element={<Clientes />} />
           <Route path="clientes/:id" element={<ClienteDetalhe />} />

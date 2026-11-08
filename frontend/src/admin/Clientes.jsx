@@ -42,11 +42,11 @@ export default function Clientes() {
                 {filtrados.map(cliente => (
                   <tr key={cliente.id} onClick={() => navigate(`/admin/clientes/${cliente.id}`)}>
                     <td><div className="adm-produto-celula"><span className="adm-avatar">{cliente.nome.charAt(0)}</span><strong>{cliente.nome}</strong></div></td>
-                    <td>{cliente.telefone}</td>
-                    <td>{cliente.email || <span className="adm-mudo">—</span>}</td>
-                    <td>{cliente.pedidos}</td>
-                    <td className="adm-mudo">{cliente.ultimo_pedido ? haQuanto(cliente.ultimo_pedido) : '—'}</td>
-                    <td onClick={e => e.stopPropagation()}><a className="adm-icone-botao adm-icone-botao--whats" href={linkWhatsApp(cliente.telefone)} target="_blank" rel="noreferrer" title="WhatsApp" aria-label={`Conversar com ${cliente.nome} no WhatsApp`}><MessageCircle size={17} /></a></td>
+                    <td data-rotulo="Telefone">{cliente.telefone}</td>
+                    <td data-rotulo="E-mail">{cliente.email || <span className="adm-mudo">—</span>}</td>
+                    <td data-rotulo="Pedidos">{cliente.pedidos}</td>
+                    <td data-rotulo="Último pedido" className="adm-mudo">{cliente.ultimo_pedido ? haQuanto(cliente.ultimo_pedido) : '—'}</td>
+                    <td data-acoes onClick={e => e.stopPropagation()}><a className="adm-icone-botao adm-icone-botao--whats" href={linkWhatsApp(cliente.telefone)} target="_blank" rel="noreferrer" title="WhatsApp" aria-label={`Conversar com ${cliente.nome} no WhatsApp`}><MessageCircle size={17} /></a></td>
                   </tr>
                 ))}
               </tbody>

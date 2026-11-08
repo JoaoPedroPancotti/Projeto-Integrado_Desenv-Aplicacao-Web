@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Lock,
@@ -11,7 +11,6 @@ import {
   Clock,
   Mail,
   CircleCheck,
-  ChevronDown,
   Package,
   BrickWall,
   Droplets,
@@ -19,10 +18,13 @@ import {
   PaintRoller,
   Wrench,
   Search,
-  Headphones,
   ShieldCheck,
+  HardHat,
+  Ruler,
+  Plus,
 } from "lucide-react";
 import api from "../services/api";
+import Cabecalho from "../components/Cabecalho";
 import "./Home.css";
 
 const LOJA = {
@@ -40,37 +42,57 @@ const CATEGORIAS = [
     nome: "Materiais básicos",
     descricao: "Cimento, areia, brita, cal e argamassa.",
     busca: "cimento",
+    foto: "/products/cimento-votoran-cp2-50kg.jpg",
+    selo: "Mais procurado",
   },
   {
     icone: BrickWall,
     nome: "Tijolos e blocos",
     descricao: "Cerâmicos, concreto e peças estruturais.",
     busca: "tijolo",
+    foto: "/products/tijolo-baiano-6-furos.jpg",
   },
   {
     icone: Droplets,
     nome: "Hidráulica",
     descricao: "Tubos, conexões, registros e caixas d’água.",
     busca: "hidráulica",
+    foto: "/products/tubo-pvc.jpg",
   },
   {
     icone: Zap,
     nome: "Elétrica",
     descricao: "Fios, disjuntores, tomadas e interruptores.",
     busca: "elétrica",
+    foto: "/products/disjuntor.jpg",
   },
   {
     icone: PaintRoller,
     nome: "Tintas e acabamento",
     descricao: "Tintas, massas, pisos e revestimentos.",
     busca: "tinta",
+    foto: "/products/tinta-acrilica.jpg",
   },
   {
     icone: Wrench,
     nome: "Ferragens e ferramentas",
     descricao: "Pregos, parafusos e ferramentas.",
     busca: "ferramenta",
+    itens: ["Pregos", "Parafusos", "Ferramentas manuais", "Fixação"],
   },
+];
+
+// Exemplo ilustrativo do cartão "Minha lista" na faixa amarela
+const LISTA_EXEMPLO = [
+  ["/products/cimento-votoran-cp2-50kg.jpg", "Cimento CP II 50 kg", "20 sc"],
+  ["/products/areia-fina-lavada.jpg", "Areia fina lavada", "3 m³"],
+  ["/products/tijolo-baiano-6-furos.jpg", "Tijolo baiano 6 furos", "1.000 un"],
+];
+
+const PASSOS = [
+  [Search, "Escolha os materiais", "Navegue pelos departamentos ou busque pelo nome e adicione à sua lista."],
+  [ClipboardList, "Envie seus dados", "Informe seu contato e os detalhes da obra. Não é preciso criar conta."],
+  [MessageCircle, "Receba a proposta", "Retornamos com valores, disponibilidade, frete e prazo de entrega."],
 ];
 
 const DUVIDAS = [
@@ -95,8 +117,6 @@ const DUVIDAS = [
 export default function Home({ pronto = true }) {
   const navigate = useNavigate();
   const [produtos, setProdutos] = useState([]);
-  const [busca, setBusca] = useState("");
-  const [menuAberto, setMenuAberto] = useState(false);
 
   useEffect(() => {
     api
@@ -107,6 +127,13 @@ export default function Home({ pronto = true }) {
       .catch((erro) => console.error("Erro ao buscar produtos:", erro));
   }, []);
 
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    const secao = document.querySelector(hash);
+    if (secao) setTimeout(() => secao.scrollIntoView({ behavior: "smooth" }), 80);
+  }, [hash]);
+
   const abrirCatalogo = (termo = "") => {
     const parametro = termo.trim()
       ? `?busca=${encodeURIComponent(termo.trim())}`
@@ -114,94 +141,10 @@ export default function Home({ pronto = true }) {
     navigate(`/catalogo${parametro}`);
   };
 
-  const pesquisar = (evento) => {
-    evento.preventDefault();
-    abrirCatalogo(busca);
-  };
 
   return (
     <div className="home">
-      <div className="home-faixa">
-        <span>Atendimento para sua obra do início ao acabamento</span>
-        <div>
-          <a href={`tel:+55${LOJA.telefone.replace(/\D/g, "")}`}>
-            <Phone size={13} /> {LOJA.telefone}
-          </a>
-          <span>Seg–Sex, 7h às 18h</span>
-        </div>
-      </div>
-
-      <header className="home-cabecalho">
-        <div className="home-topo">
-          <a
-            href="#inicio"
-            className="home-marca"
-            aria-label="Comercial Pancotti - início"
-          >
-            <img src="/logotipo-claro.png" alt="Comercial Pancotti" />
-          </a>
-
-          <form className="home-busca" onSubmit={pesquisar}>
-            <span>Produtos</span>
-            <input
-              type="search"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="O que você precisa para a obra?"
-              aria-label="Buscar produtos"
-            />
-            <button type="submit" aria-label="Pesquisar">
-              <Search size={21} />
-            </button>
-          </form>
-
-          <div className="home-acoes-topo">
-            <a href="#contato" className="home-atendimento">
-              <Headphones size={21} />
-              <span>
-                <small>Precisa de ajuda?</small>
-                <strong>Fale conosco</strong>
-              </span>
-            </a>
-            <button className="home-orcamento" onClick={() => abrirCatalogo()}>
-              <ClipboardList size={21} />
-              <span>
-                <small>Monte agora</small>
-                <strong>Seu orçamento</strong>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div className="home-navegacao">
-          {/* <button className="home-departamentos" onClick={() => setMenuAberto(!menuAberto)}><Menu size={18} /> Departamentos <ChevronDown size={15} /></button> */}
-          <nav
-            className={menuAberto ? "home-menu home-menu--aberto" : "home-menu"}
-          >
-            <a href="#produtos" onClick={() => setMenuAberto(false)}>
-              Produtos
-            </a>
-            <a href="#como-funciona" onClick={() => setMenuAberto(false)}>
-              Como comprar
-            </a>
-            <a href="#sobre" onClick={() => setMenuAberto(false)}>
-              Sobre a Pancotti
-            </a>
-            <a href="#duvidas" onClick={() => setMenuAberto(false)}>
-              Dúvidas
-            </a>
-            <a href="#contato" onClick={() => setMenuAberto(false)}>
-              Contato
-            </a>
-          </nav>
-          <button
-            className="home-menu-lojista"
-            onClick={() => navigate("/login")}
-          >
-            <Lock size={15} /> Área do lojista
-          </button>
-        </div>
-      </header>
+      <Cabecalho />
 
       <main>
         <section
@@ -210,7 +153,7 @@ export default function Home({ pronto = true }) {
         >
           <div className="home-banner-conteudo">
             <span className="home-etiqueta">Construir ficou mais simples</span>
-            <h1>Sua obra começa com a escolha certa.</h1>
+            <h1>Sua obra começa com a <em>escolha certa.</em></h1>
             <p>
               Encontre materiais para cada etapa, monte sua lista e receba um
               orçamento personalizado com prazo e entrega.
@@ -233,11 +176,11 @@ export default function Home({ pronto = true }) {
             </div>
           </div>
           <div className="home-banner-foto">
-            <img src="/frenteloja.png" alt="Fachada da Comercial Pancotti" />
-            <div className="home-banner-selo">
-              <strong>Do básico ao acabamento</strong>
-              <span>Tudo em um só orçamento</span>
-            </div>
+            <img src="/frenteloja.png" alt="Fachada da Comercial Pancotti" fetchPriority="high" />
+          </div>
+          <div className="home-banner-selo">
+            <strong>Do básico ao acabamento</strong>
+            <span>Tudo em um só orçamento</span>
           </div>
         </section>
 
@@ -270,30 +213,37 @@ export default function Home({ pronto = true }) {
 
         <section id="produtos" className="home-secao">
           <div className="home-titulo-secao">
-            <div>
-              <span className="home-etiqueta">Departamentos</span>
-              <h2>Encontre por categoria</h2>
-            </div>
+            <h2>Compre por departamento</h2>
             <button className="home-link" onClick={() => abrirCatalogo()}>
               Ver catálogo completo <ArrowRight size={17} />
             </button>
           </div>
           <div className="home-categorias">
             {CATEGORIAS.map(
-              ({ icone: Icone, nome, descricao, busca: termo }) => (
+              ({ icone: Icone, nome, descricao, busca: termo, foto, selo, itens }) => (
                 <button
                   key={nome}
-                  className="home-categoria"
+                  className={`home-categoria ${foto ? "" : "home-categoria--marca"}`}
                   onClick={() => abrirCatalogo(termo)}
                 >
-                  <span className="home-categoria-icone">
-                    <Icone size={27} />
-                  </span>
-                  <span>
+                  {foto ? (
+                    <img src={foto} alt="" loading="lazy" />
+                  ) : (
+                    <Icone className="home-categoria-marca-icone" size={190} strokeWidth={1.1} />
+                  )}
+                  {selo && <span className="home-categoria-selo">{selo}</span>}
+                  <span className="home-categoria-texto">
                     <strong>{nome}</strong>
                     <small>{descricao}</small>
+                    {itens && (
+                      <span className="home-categoria-itens">
+                        {itens.map((item) => <span key={item}>{item}</span>)}
+                      </span>
+                    )}
                   </span>
-                  <ArrowRight className="home-categoria-seta" size={18} />
+                  <span className="home-categoria-seta" aria-hidden="true">
+                    <ArrowRight size={18} />
+                  </span>
                 </button>
               ),
             )}
@@ -347,106 +297,171 @@ export default function Home({ pronto = true }) {
         </section>
 
         <section className="home-faixa-obra">
-          <div>
-            <span className="home-etiqueta">Atendimento personalizado</span>
-            <h2>Tem uma lista completa da obra?</h2>
-            <p>
-              Envie os itens que precisa. Nossa equipe organiza o orçamento,
-              confere as quantidades e combina a entrega com você.
-            </p>
+          <div className="home-faixa-obra-interno">
+            <div className="home-faixa-obra-texto">
+              <h2>Tem a lista completa da obra?</h2>
+              <p>
+                Mande tudo de uma vez. Nossa equipe confere as quantidades,
+                monta o orçamento e combina a entrega com você.
+              </p>
+              <div className="home-faixa-obra-botoes">
+                <button onClick={() => abrirCatalogo()}>
+                  Montar minha lista <ArrowRight size={18} />
+                </button>
+                <a
+                  href={`https://wa.me/55${LOJA.whatsapp.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <MessageCircle size={18} /> Enviar pelo WhatsApp
+                </a>
+              </div>
+            </div>
+
+            <div className="home-lista-exemplo" aria-hidden="true">
+              <div className="home-lista-exemplo-topo">
+                <strong>Minha lista</strong>
+                <span>3 itens</span>
+              </div>
+              {LISTA_EXEMPLO.map(([foto, nome, qtd]) => (
+                <div key={nome} className="home-lista-exemplo-item">
+                  <img src={foto} alt="" loading="lazy" />
+                  <span>{nome}</span>
+                  <b>{qtd}</b>
+                </div>
+              ))}
+              <div className="home-lista-exemplo-botao">
+                Pedir orçamento <ArrowRight size={16} />
+              </div>
+            </div>
           </div>
-          <button onClick={() => abrirCatalogo()}>
-            Montar minha lista <ArrowRight size={19} />
-          </button>
         </section>
 
         <section id="como-funciona" className="home-secao home-como">
-          <div className="home-titulo-central">
-            <span className="home-etiqueta">Simples do começo ao fim</span>
-            <h2>Seu orçamento em três passos</h2>
-            <p>Você escolhe com calma e nossa equipe cuida do restante.</p>
+          <div className="home-como-titulo">
+            <h2>Como funciona o orçamento</h2>
+            <p>
+              Sem cadastro e sem pagar nada pelo site. Você escolhe com calma e
+              nossa equipe cuida do restante.
+            </p>
+            <button className="home-link" onClick={() => abrirCatalogo()}>
+              Começar pelo catálogo <ArrowRight size={17} />
+            </button>
           </div>
-          <div className="home-passos">
-            <article>
-              <span>01</span>
-              <div>
-                <h3>Escolha os materiais</h3>
-                <p>
-                  Navegue pelos departamentos e adicione tudo o que precisa.
-                </p>
-              </div>
-            </article>
-            <article>
-              <span>02</span>
-              <div>
-                <h3>Envie seus dados</h3>
-                <p>
-                  Informe o contato e os detalhes da sua obra. Não precisa criar
-                  conta.
-                </p>
-              </div>
-            </article>
-            <article>
-              <span>03</span>
-              <div>
-                <h3>Receba a proposta</h3>
-                <p>
-                  Retornamos com valores, disponibilidade, frete e prazo de
-                  entrega.
-                </p>
-              </div>
-            </article>
-          </div>
+          <ol className="home-passos">
+            {PASSOS.map(([Icone, titulo, texto], indice) => (
+              <li key={titulo}>
+                <span className="home-passo-numero">{indice + 1}</span>
+                <div>
+                  <h3>{titulo}</h3>
+                  <p>{texto}</p>
+                </div>
+                <Icone className="home-passo-icone" size={26} strokeWidth={1.6} />
+              </li>
+            ))}
+          </ol>
         </section>
 
-        <section id="sobre" className="home-secao home-sobre">
-          <div className="home-sobre-foto">
-            <img src="/frenteloja.png" alt="Loja Comercial Pancotti" />
-            <span>Atendimento local e próximo</span>
-          </div>
-          <div className="home-sobre-texto">
-            <span className="home-etiqueta">Sobre a Pancotti</span>
-            <h2>Experiência de loja física com a praticidade do digital.</h2>
-            <p>
-              A Comercial Pancotti atende quem constrói, reforma e trabalha
-              todos os dias no canteiro. Aqui você encontra orientação próxima e
-              um catálogo feito para agilizar sua compra.
-            </p>
-            <ul>
-              <li>
-                <CircleCheck size={19} /> Equipe que entende de obra
-              </li>
-              <li>
-                <CircleCheck size={19} /> Quantidades ajustadas à sua
-                necessidade
-              </li>
-              <li>
-                <CircleCheck size={19} /> Orçamento com frete e prazo
-              </li>
-            </ul>
-            <a href="#contato">
-              Conheça nossa loja <ArrowRight size={17} />
-            </a>
+        <section id="sobre" className="home-sobre">
+          <div className="home-sobre-interno">
+            <div className="home-sobre-texto">
+              <h2>
+                Experiência de loja física com a <em>praticidade do digital.</em>
+              </h2>
+              <p>
+                A Comercial Pancotti atende quem constrói, reforma e trabalha
+                todos os dias no canteiro. Aqui você encontra orientação próxima
+                e um catálogo feito para agilizar sua compra.
+              </p>
+              <ul className="home-sobre-diferenciais">
+                <li>
+                  <HardHat size={26} strokeWidth={1.7} />
+                  <strong>Equipe que entende de obra</strong>
+                  <span>Orientação para escolher o material certo para cada etapa.</span>
+                </li>
+                <li>
+                  <Ruler size={26} strokeWidth={1.7} />
+                  <strong>Quantidade sob medida</strong>
+                  <span>Areia e brita por metro, outros itens por quilo ou unidade.</span>
+                </li>
+                <li>
+                  <Truck size={26} strokeWidth={1.7} />
+                  <strong>Frete e prazo no orçamento</strong>
+                  <span>Você sabe o valor da entrega antes de fechar o pedido.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="home-sobre-visual">
+              <div
+                className="home-sobre-foto"
+                role="img"
+                aria-label="Interior da Comercial Pancotti, com prateleiras de materiais"
+              />
+              <div className="home-sobre-visita">
+                <strong>Visite a loja</strong>
+                <span>
+                  <MapPin size={17} />
+                  <span>
+                    {LOJA.endereco}
+                    <br />
+                    {LOJA.cidade}
+                  </span>
+                </span>
+                <span>
+                  <Clock size={17} />
+                  <span>
+                    {LOJA.horarios.map((h) => (
+                      <span key={h} className="home-sobre-horario">{h}</span>
+                    ))}
+                  </span>
+                </span>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${LOJA.endereco}, ${LOJA.cidade}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Como chegar <ArrowRight size={16} />
+                </a>
+              </div>
+            </div>
           </div>
         </section>
 
         <section id="duvidas" className="home-secao home-duvidas">
-          <div>
-            <span className="home-etiqueta">Dúvidas frequentes</span>
-            <h2>Informação clara antes de comprar.</h2>
+          <div className="home-duvidas-lado">
+            <h2>Dúvidas frequentes</h2>
             <p>
-              Ainda ficou com alguma dúvida? Nossa equipe está pronta para
-              ajudar.
+              Respostas rápidas para o que mais perguntam antes de pedir um
+              orçamento.
             </p>
-            <a href="#contato">
-              <MessageCircle size={17} /> Falar com a equipe
-            </a>
+            <div className="home-ajuda">
+              <strong>Não achou sua resposta?</strong>
+              <span>Fale direto com a nossa equipe.</span>
+              <a
+                className="home-ajuda-whats"
+                href={`https://wa.me/55${LOJA.whatsapp.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <MessageCircle size={18} /> Chamar no WhatsApp
+              </a>
+              <a
+                className="home-ajuda-fone"
+                href={`tel:+55${LOJA.telefone.replace(/\D/g, "")}`}
+              >
+                <Phone size={16} /> {LOJA.telefone}
+              </a>
+            </div>
           </div>
           <div className="home-perguntas">
-            {DUVIDAS.map(([pergunta, resposta]) => (
-              <details key={pergunta}>
+            {DUVIDAS.map(([pergunta, resposta], indice) => (
+              <details key={pergunta} open={indice === 0}>
                 <summary>
-                  {pergunta} <ChevronDown size={19} />
+                  <span>{pergunta}</span>
+                  <span className="home-pergunta-icone" aria-hidden="true">
+                    <Plus size={18} />
+                  </span>
                 </summary>
                 <p>{resposta}</p>
               </details>

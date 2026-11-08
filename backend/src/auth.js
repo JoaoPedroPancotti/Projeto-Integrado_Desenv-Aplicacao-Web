@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 
 const SEGREDO = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 if (!process.env.JWT_SECRET) {
-  console.warn('⚠️  JWT_SECRET não definido no .env: os logins do painel caem a cada reinício do servidor.');
+  console.warn('JWT_SECRET não definido no .env: os logins do painel caem a cada reinício do servidor.');
 }
 
 function gerarToken(admin) {

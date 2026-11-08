@@ -37,6 +37,6 @@ module.exports = prepararBanco;
 
 if (require.main === module) {
   prepararBanco()
-    .then(() => { console.log('✅ Banco pronto.'); process.exit(0); })
-    .catch(erro => { console.error('❌ Erro na migração:', erro.message); process.exit(1); });
+    .then(() => { console.log('Banco pronto.'); process.exit(0); })
+    .catch(erro => { console.error('Erro na migração:', erro.message); process.exit(1); });
 }

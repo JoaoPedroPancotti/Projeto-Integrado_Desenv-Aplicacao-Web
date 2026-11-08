@@ -41,9 +41,9 @@ export default function Usuarios() {
                   {usuarios.map(usuario => (
                     <tr key={usuario.id} className={usuario.ativo ? '' : 'adm-linha-inativa'}>
                       <td><div className="adm-produto-celula"><span className="adm-avatar">{usuario.nome.charAt(0)}</span><div><strong>{usuario.nome}{usuario.id === admin?.id && <em className="adm-voce">você</em>}</strong><small>{usuario.email}</small></div></div></td>
-                      <td>{usuario.ativo ? <span className="adm-selo adm-selo--aprovado">Ativo</span> : <span className="adm-selo adm-selo--cancelado">Bloqueado</span>}</td>
-                      <td className="adm-mudo">{usuario.ultimo_acesso ? haQuanto(usuario.ultimo_acesso) : 'Nunca entrou'}</td>
-                      <td>
+                      <td data-rotulo="Situação">{usuario.ativo ? <span className="adm-selo adm-selo--aprovado">Ativo</span> : <span className="adm-selo adm-selo--cancelado">Bloqueado</span>}</td>
+                      <td data-rotulo="Último acesso" className="adm-mudo">{usuario.ultimo_acesso ? haQuanto(usuario.ultimo_acesso) : 'Nunca entrou'}</td>
+                      <td data-acoes>
                         <div className="adm-acoes-linha">
                           <button className="adm-icone-botao" onClick={() => setEditando(usuario)} title="Editar" aria-label={`Editar ${usuario.nome}`}><Pencil size={16} /></button>
                           {usuario.id !== admin?.id && <button className="adm-icone-botao" onClick={() => excluir(usuario)} title="Excluir" aria-label={`Excluir ${usuario.nome}`}><Trash2 size={16} /></button>}
