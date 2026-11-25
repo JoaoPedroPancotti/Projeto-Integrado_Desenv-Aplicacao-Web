@@ -1,0 +1,143 @@
+-- ==========================================
+-- ATENÇÃO: versão antiga para MySQL, mantida só como referência.
+-- O banco agora é PostgreSQL no Supabase: use backend/sql/schema.sql
+-- (o backend cria as tabelas sozinho com npm run dev / npm run migrar).
+-- ==========================================
+
+-- 1. Criação e seleção do Banco de Dados
+CREATE DATABASE IF NOT EXISTS comercial_pancotti
+CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE comercial_pancotti;
+
+-- 2. Tabela de Categorias
+-- Armazena os departamentos da loja (ex: Hidráulica, Elétrica, Tintas)
+CREATE TABLE categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    descricao TEXT,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- 3. Tabela de Produtos
+-- Cadastro principal dos materiais de construção
+CREATE TABLE produtos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    categoria_id INT,
+    nome VARCHAR(150) NOT NULL,
+    descricao TEXT,
+    imagem_url VARCHAR(255),
+    ativo TINYINT(1) DEFAULT 1, -- 1 para Ativo, 0 para Inativo
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Relacionamento: Um produto pertence a uma categoria
+    CONSTRAINT fk_produtos_categoria
+        FOREIGN KEY (categoria_id) 
+        REFERENCES categorias(id)
+        ON DELETE SET NULL -- Se a categoria for apagada, o produto fica sem categoria, mas não é deletado
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- 4. Tabela de Clientes
+-- Armazena os dados de quem está solicitando o orçamento
+CREATE TABLE clientes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    email VARCHAR(150),
+    telefone VARCHAR(20) NOT NULL, -- Recomendado VARCHAR para manter a formatação (ex: 11999999999)
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- 5. Tabela de Orçamentos (Cabeçalho do Pedido)
+-- Centraliza a solicitação do cliente
+CREATE TABLE orcamentos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    cliente_id INT NOT NULL,
+    status ENUM('Pendente', 'Em Andamento', 'Respondido', 'Cancelado') DEFAULT 'Pendente',
+    observacoes TEXT,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Relacionamento: Um orçamento pertence a um cliente
+    CONSTRAINT fk_orcamentos_cliente
+        FOREIGN KEY (cliente_id) 
+        REFERENCES clientes(id)
+        ON DELETE CASCADE -- Se o cliente for apagado (LGPD), seus orçamentos também são apagados
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- 6. Tabela Pivot: Itens do Orçamento
+-- Relaciona quais produtos e as quantidades solicitadas em um orçamento específico
+CREATE TABLE itens_orcamento (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    orcamento_id INT NOT NULL,
+    produto_id INT NOT NULL,
+    quantidade DECIMAL(10,3) NOT NULL, 
+    -- Uso de DECIMAL(10,3) no lugar de INT. 
+    -- Em materiais de construção, é comum vender frações (ex: 2.5 metros de areia, 1.5 kg de prego).
+    
+    -- Relacionamento com o Orçamento
+    CONSTRAINT fk_itens_orcamento
+        FOREIGN KEY (orcamento_id) 
+        REFERENCES orcamentos(id)
+        ON DELETE CASCADE, -- Se o orçamento for cancelado/excluído, os itens vinculados a ele somem automaticamente
+        
+    -- Relacionamento com o Produto
+    CONSTRAINT fk_itens_produto
+        FOREIGN KEY (produto_id) 
+        REFERENCES produtos(id)
+        ON DELETE RESTRICT -- Impede que o lojista apague um produto do sistema se ele já estiver salvo em um orçamento existente
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ==========================================
+-- Fotos dos produtos (arquivos em frontend/public/products)
+-- ==========================================
+UPDATE produtos SET imagem_url = '/products/cimento-votoran-cp2-50kg.jpg' WHERE id = 1;
+UPDATE produtos SET imagem_url = '/products/areia-fina-lavada.jpg' WHERE id = 2;
+UPDATE produtos SET imagem_url = '/products/tijolo-baiano-6-furos.jpg' WHERE id = 3;
+UPDATE produtos SET imagem_url = '/products/tubo-pvc.jpg' WHERE id = 4;
+UPDATE produtos SET imagem_url = '/products/registro-gaveta.jpg' WHERE id = 5;
+UPDATE produtos SET imagem_url = '/products/cabo-flexivel.jpg' WHERE id = 6;
+UPDATE produtos SET imagem_url = '/products/disjuntor.jpg' WHERE id = 7;
+UPDATE produtos SET imagem_url = '/products/tinta-acrilica.jpg' WHERE id = 8;
+UPDATE produtos SET imagem_url = '/products/massa-corrida.jpg' WHERE id = 9;
+
+
+-- ==========================================
+-- Painel administrativo
+-- Estas alterações são aplicadas automaticamente pelo backend ao iniciar
+-- (backend/src/scripts/migrar.js). Também dá para rodar manualmente: npm run migrar
+-- ==========================================
+CREATE TABLE IF NOT EXISTS administradores (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    senha_hash VARCHAR(255) NOT NULL, -- senha criptografada com bcrypt
+    ativo TINYINT(1) DEFAULT 1,
+    ultimo_acesso TIMESTAMP NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+ALTER TABLE produtos ADD COLUMN preco DECIMAL(10,2) NULL AFTER descricao;
+ALTER TABLE produtos ADD COLUMN unidade VARCHAR(20) NULL AFTER preco;
+
+ALTER TABLE orcamentos MODIFY status ENUM('Pendente', 'Em Andamento', 'Respondido', 'Aprovado', 'Concluído', 'Cancelado') DEFAULT 'Pendente';
+ALTER TABLE orcamentos ADD COLUMN valor_frete DECIMAL(10,2) NULL;
+ALTER TABLE orcamentos ADD COLUMN desconto DECIMAL(10,2) NULL;
+ALTER TABLE orcamentos ADD COLUMN forma_pagamento VARCHAR(40) NULL;
+ALTER TABLE orcamentos ADD COLUMN resposta TEXT NULL; -- mensagem enviada ao cliente
+ALTER TABLE orcamentos ADD COLUMN notas_internas TEXT NULL; -- só a loja vê
+ALTER TABLE itens_orcamento ADD COLUMN preco_unitario DECIMAL(10,2) NULL;
+
+CREATE TABLE IF NOT EXISTS orcamento_historico (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    orcamento_id INT NOT NULL,
+    administrador_id INT NULL,
+    status VARCHAR(30) NOT NULL,
+    descricao VARCHAR(255),
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_historico_orcamento FOREIGN KEY (orcamento_id) REFERENCES orcamentos(id) ON DELETE CASCADE,
+    CONSTRAINT fk_historico_admin FOREIGN KEY (administrador_id) REFERENCES administradores(id) ON DELETE SET NULL
+) ENGINE=InnoDB;

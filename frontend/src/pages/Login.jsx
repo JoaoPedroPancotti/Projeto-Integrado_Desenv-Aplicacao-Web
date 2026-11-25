@@ -4,11 +4,14 @@ import {
   ArrowLeft, ArrowRight, Mail, Lock, Eye, EyeOff, CircleAlert,
   LoaderCircle, Check, ShieldCheck, ClipboardCheck, Headphones, Truck
 } from 'lucide-react';
-import api from '../services/api';
-import { entrar, lerToken } from '../services/auth';
-import './Login.css';
+import { autenticacaoApi } from '../services/api/admin';
+import { entrar, lerToken } from '../services/sessao';
+import { mensagemErro } from '../utils/erros';
+import useSeo from '../hooks/useSeo';
+import '../styles/pages/Login.css';
 
 export default function Login() {
+  useSeo({ titulo: 'Área do lojista', caminho: '/', noindex: true });
   const [parametros] = useSearchParams();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -41,15 +44,17 @@ export default function Login() {
     }
 
     setLoading(true);
-    api.post('/admin/login', { email: email.trim().toLowerCase(), senha })
-      .then(({ data }) => {
+    autenticacaoApi.entrar({ email: email.trim().toLowerCase(), senha })
+      .then(data => {
         entrar(data.token, data.admin);
         setAprovado(true);
         setTimeout(() => navigate(destino, { replace: true }), 700);
       })
       .catch(falha => {
         mostrarErro(falha.response
-          ? (falha.response.data?.erro || 'E-mail ou senha incorretos. Verifique os dados e tente novamente.')
+          ? mensagemErro(falha, falha.response.status >= 500
+            ? 'O servidor teve um problema. Tente novamente em instantes.'
+            : 'E-mail ou senha incorretos. Verifique os dados e tente novamente.')
           : 'Não foi possível falar com o servidor. Verifique se o backend está ligado.');
       })
       .finally(() => setLoading(false));
@@ -60,12 +65,12 @@ export default function Login() {
   return (
     <div className="login">
       <aside className="login-apresentacao">
-        <img className="login-fundo" src="/frenteloja.png" alt="" />
+        <img className="login-fundo" src="/images/frenteloja.png" alt="" />
         <div className="login-sombra" />
 
         <div className="login-apresentacao-topo">
           <button onClick={() => navigate('/')}><ArrowLeft size={16} /> Voltar ao site</button>
-          <img src="/logotipo-claro.png" alt="Comercial Pancotti" />
+          <img src="/images/logotipo-claro.png" alt="Comercial Pancotti" />
         </div>
 
         <div className="login-apresentacao-conteudo">
@@ -86,7 +91,7 @@ export default function Login() {
       <main className="login-area">
         <div className="login-mobile-topo">
           <button onClick={() => navigate('/')} aria-label="Voltar ao site"><ArrowLeft size={18} /></button>
-          <img src="/logotipo.png" alt="Comercial Pancotti" />
+          <img src="/images/logotipo.png" alt="Comercial Pancotti" />
         </div>
 
         <section className="login-card">

@@ -4,11 +4,14 @@ import {
   ArrowLeft, ArrowRight, Check, CircleAlert, ClipboardCheck,
   LoaderCircle, LockKeyhole, Mail, MapPin, Phone, ShieldCheck
 } from 'lucide-react';
-import api from '../services/api';
-import { carregarOrcamento, limparOrcamento } from '../services/orcamento';
-import './Checkout.css';
+import { catalogoApi } from '../services/api/catalogo';
+import { carregarOrcamento, limparOrcamento } from '../services/listaOrcamento';
+import { mensagemErro } from '../utils/erros';
+import '../styles/pages/Checkout.css';
 
+import useSeo from '../hooks/useSeo';
 export default function Checkout() {
+  useSeo({ titulo: 'Finalizar orçamento', caminho: '/', noindex: true });
   const navigate = useNavigate();
   const location = useLocation();
   const [itens] = useState(() => location.state?.carrinho?.length ? location.state.carrinho : carregarOrcamento());
@@ -28,7 +31,7 @@ export default function Checkout() {
     if (!itens.length) { setErro('Sua lista está vazia. Volte ao catálogo e adicione pelo menos um produto.'); return; }
     setLoading(true);
     try {
-      const { data } = await api.post('/orcamentos', {
+      const data = await catalogoApi.enviarOrcamento({
         cliente: { nome, email, telefone },
         itens: itens.map(item => ({ produto_id: item.id, quantidade: item.quantidade || 1 })),
         observacoes
@@ -36,7 +39,7 @@ export default function Checkout() {
       limparOrcamento();
       setProtocolo(data.protocolo);
     } catch (falha) {
-      setErro(falha.response?.data?.erro || 'Não foi possível enviar o orçamento. Verifique a conexão e tente novamente.');
+      setErro(mensagemErro(falha, 'Não foi possível enviar o orçamento. Verifique a conexão e tente novamente.'));
     } finally {
       setLoading(false);
     }
@@ -45,7 +48,7 @@ export default function Checkout() {
   if (protocolo) {
     return (
       <div className="checkout checkout--sucesso">
-        <header className="checkout-topo"><img src="/logotipo-claro.png" alt="Comercial Pancotti" /></header>
+        <header className="checkout-topo"><img src="/images/logotipo-claro.png" alt="Comercial Pancotti" /></header>
         <main className="checkout-sucesso">
           <span className="checkout-sucesso-icone"><Check size={34} /></span>
           <span className="checkout-etiqueta">Solicitação recebida</span>
@@ -62,7 +65,7 @@ export default function Checkout() {
     <div className="checkout">
       <header className="checkout-topo">
         <button onClick={() => navigate('/catalogo')}><ArrowLeft size={17} /> Voltar ao catálogo</button>
-        <img src="/logotipo-claro.png" alt="Comercial Pancotti" />
+        <img src="/images/logotipo-claro.png" alt="Comercial Pancotti" />
         <span><LockKeyhole size={15} /> Ambiente seguro</span>
       </header>
 

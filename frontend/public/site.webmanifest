@@ -1,0 +1,13 @@
+{
+  "name": "Comercial Pancotti",
+  "short_name": "Pancotti",
+  "description": "Materiais de construção em São João da Boa Vista - SP. Peça orçamento online.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#ffffff",
+  "theme_color": "#f5b800",
+  "icons": [
+    { "src": "/images/logo-p.png", "sizes": "any", "type": "image/png" }
+  ]
+}

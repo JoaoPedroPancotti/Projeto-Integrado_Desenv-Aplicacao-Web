@@ -16,6 +16,9 @@
 
   --erro: #f87171;
   --erro-fundo: rgba(239, 68, 68, 0.12);
+
+  /* largura útil do site: cabeçalho, banner e seções seguem a mesma régua */
+  --largura-site: 1520px;
 }
 
 * {
@@ -62,8 +65,9 @@ textarea:focus {
   color: var(--fundo);
 }
 
-.container {
-  max-width: 1200px;
+/* Área centralizada das páginas do site (components/layout/SiteLayout.jsx) */
+.site-layout {
+  max-width: calc(var(--largura-site) + 40px);
   margin: 0 auto;
   padding: 0 20px;
 }

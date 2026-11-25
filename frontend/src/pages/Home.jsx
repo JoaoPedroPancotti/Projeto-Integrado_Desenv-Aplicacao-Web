@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Lock,
@@ -11,128 +11,51 @@ import {
   Clock,
   Mail,
   CircleCheck,
-  Package,
-  BrickWall,
-  Droplets,
-  Zap,
-  PaintRoller,
-  Wrench,
-  Search,
   ShieldCheck,
   HardHat,
   Ruler,
   Plus,
 } from "lucide-react";
-import api from "../services/api";
-import Cabecalho from "../components/Cabecalho";
-import "./Home.css";
+import { catalogoApi } from "../services/api/catalogo";
+import Cabecalho from "../components/layout/Cabecalho";
+import useRolarParaHash from "../hooks/useRolarParaHash";
+import useSeo from "../hooks/useSeo";
+import { LOJA, linkMapa, linkTelefone, linkWhatsapp } from "../data/loja";
+import { DEPARTAMENTOS } from "../data/departamentos";
+import { DUVIDAS, LISTA_EXEMPLO, PASSOS } from "../data/conteudoHome";
+import "../styles/pages/Home.css";
 
-const LOJA = {
-  endereco: "R. Júlio Michelazo, 326 - Vila Nossa Sra. de Fátima",
-  cidade: "São João da Boa Vista - SP, 13872-660",
-  telefone: "(19) 99494-3399",
-  whatsapp: "(19) 99494-3399",
-  email: "contato@pancotti.com",
-  horarios: ["Segunda a sexta: 7h às 18h", "Sábado: 7h às 12h"],
+const JSON_LD_FAQ = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: DUVIDAS.map(([pergunta, resposta]) => ({
+    "@type": "Question",
+    name: pergunta,
+    acceptedAnswer: { "@type": "Answer", text: resposta },
+  })),
 };
-
-const CATEGORIAS = [
-  {
-    icone: Package,
-    nome: "Materiais básicos",
-    descricao: "Cimento, areia, brita, cal e argamassa.",
-    busca: "cimento",
-    foto: "/products/cimento-votoran-cp2-50kg.jpg",
-    selo: "Mais procurado",
-  },
-  {
-    icone: BrickWall,
-    nome: "Tijolos e blocos",
-    descricao: "Cerâmicos, concreto e peças estruturais.",
-    busca: "tijolo",
-    foto: "/products/tijolo-baiano-6-furos.jpg",
-  },
-  {
-    icone: Droplets,
-    nome: "Hidráulica",
-    descricao: "Tubos, conexões, registros e caixas d’água.",
-    busca: "hidráulica",
-    foto: "/products/tubo-pvc.jpg",
-  },
-  {
-    icone: Zap,
-    nome: "Elétrica",
-    descricao: "Fios, disjuntores, tomadas e interruptores.",
-    busca: "elétrica",
-    foto: "/products/disjuntor.jpg",
-  },
-  {
-    icone: PaintRoller,
-    nome: "Tintas e acabamento",
-    descricao: "Tintas, massas, pisos e revestimentos.",
-    busca: "tinta",
-    foto: "/products/tinta-acrilica.jpg",
-  },
-  {
-    icone: Wrench,
-    nome: "Ferragens e ferramentas",
-    descricao: "Pregos, parafusos e ferramentas.",
-    busca: "ferramenta",
-    itens: ["Pregos", "Parafusos", "Ferramentas manuais", "Fixação"],
-  },
-];
-
-// Exemplo ilustrativo do cartão "Minha lista" na faixa amarela
-const LISTA_EXEMPLO = [
-  ["/products/cimento-votoran-cp2-50kg.jpg", "Cimento CP II 50 kg", "20 sc"],
-  ["/products/areia-fina-lavada.jpg", "Areia fina lavada", "3 m³"],
-  ["/products/tijolo-baiano-6-furos.jpg", "Tijolo baiano 6 furos", "1.000 un"],
-];
-
-const PASSOS = [
-  [Search, "Escolha os materiais", "Navegue pelos departamentos ou busque pelo nome e adicione à sua lista."],
-  [ClipboardList, "Envie seus dados", "Informe seu contato e os detalhes da obra. Não é preciso criar conta."],
-  [MessageCircle, "Receba a proposta", "Retornamos com valores, disponibilidade, frete e prazo de entrega."],
-];
-
-const DUVIDAS = [
-  [
-    "Preciso criar uma conta para pedir orçamento?",
-    "Não. Basta escolher os produtos no catálogo e informar seu nome e telefone ao finalizar.",
-  ],
-  [
-    "Por que os preços não aparecem no site?",
-    "Os valores variam conforme a quantidade e a entrega. Por isso enviamos o preço certo junto com o orçamento.",
-  ],
-  [
-    "Vocês fazem entrega?",
-    "Sim, entregamos na nossa região. O valor do frete e o prazo são informados no orçamento.",
-  ],
-  [
-    "Posso pedir quantidades fracionadas?",
-    "Sim. Materiais como areia e brita podem ser pedidos por metro, e outros itens por quilo ou unidade.",
-  ],
-];
 
 export default function Home({ pronto = true }) {
   const navigate = useNavigate();
+  useSeo({
+    titulo: "Materiais de Construção em São João da Boa Vista - SP",
+    descricao:
+      "Materiais de construção em São João da Boa Vista - SP: cimento, areia, tijolos, hidráulica, elétrica e tintas. Monte sua lista e peça orçamento online, com entrega na região.",
+    caminho: "/",
+    jsonLd: JSON_LD_FAQ,
+  });
   const [produtos, setProdutos] = useState([]);
 
   useEffect(() => {
-    api
-      .get("/produtos")
-      .then((resposta) =>
-        setProdutos(resposta.data.filter((p) => p.ativo !== 0).slice(0, 4)),
+    catalogoApi
+      .listarProdutos()
+      .then((lista) =>
+        setProdutos(lista.filter((p) => p.ativo !== 0).slice(0, 4)),
       )
       .catch((erro) => console.error("Erro ao buscar produtos:", erro));
   }, []);
 
-  const { hash } = useLocation();
-  useEffect(() => {
-    if (!hash) return;
-    const secao = document.querySelector(hash);
-    if (secao) setTimeout(() => secao.scrollIntoView({ behavior: "smooth" }), 80);
-  }, [hash]);
+  useRolarParaHash();
 
   const abrirCatalogo = (termo = "") => {
     const parametro = termo.trim()
@@ -140,7 +63,6 @@ export default function Home({ pronto = true }) {
       : "";
     navigate(`/catalogo${parametro}`);
   };
-
 
   return (
     <div className="home">
@@ -151,36 +73,38 @@ export default function Home({ pronto = true }) {
           id="inicio"
           className={`home-banner ${pronto ? "home-banner--visivel" : ""}`}
         >
-          <div className="home-banner-conteudo">
-            <span className="home-etiqueta">Construir ficou mais simples</span>
-            <h1>Sua obra começa com a <em>escolha certa.</em></h1>
-            <p>
-              Encontre materiais para cada etapa, monte sua lista e receba um
-              orçamento personalizado com prazo e entrega.
-            </p>
-            <div className="home-botoes">
-              <button className="btn-primario" onClick={() => abrirCatalogo()}>
-                Explorar catálogo <ArrowRight size={19} />
-              </button>
-              <a className="btn-secundario" href="#como-funciona">
-                Como funciona
-              </a>
-            </div>
-            <div className="home-banner-prova">
-              <span>
-                <CircleCheck size={17} /> Sem cadastro
-              </span>
-              <span>
-                <CircleCheck size={17} /> Atendimento humano
-              </span>
-            </div>
-          </div>
           <div className="home-banner-foto">
-            <img src="/frenteloja.png" alt="Fachada da Comercial Pancotti" fetchPriority="high" />
+            <img src="/images/frenteloja.png" alt="Fachada da Comercial Pancotti, loja de materiais de construção em São João da Boa Vista" fetchPriority="high" decoding="async" />
           </div>
-          <div className="home-banner-selo">
-            <strong>Do básico ao acabamento</strong>
-            <span>Tudo em um só orçamento</span>
+          <div className="home-banner-interno">
+            <div className="home-banner-conteudo">
+              <span className="home-etiqueta">Construir ficou mais simples</span>
+              <h1>Sua obra começa com a <em>escolha certa.</em></h1>
+              <p>
+                Encontre materiais para cada etapa, monte sua lista e receba um
+                orçamento personalizado com prazo e entrega.
+              </p>
+              <div className="home-botoes">
+                <button className="btn-primario" onClick={() => abrirCatalogo()}>
+                  Explorar catálogo <ArrowRight size={19} />
+                </button>
+                <a className="btn-secundario" href="#como-funciona">
+                  Como funciona
+                </a>
+              </div>
+              <div className="home-banner-prova">
+                <span>
+                  <CircleCheck size={17} /> Sem cadastro
+                </span>
+                <span>
+                  <CircleCheck size={17} /> Atendimento humano
+                </span>
+              </div>
+            </div>
+            <div className="home-banner-selo">
+              <strong>Do básico ao acabamento</strong>
+              <span>Tudo em um só orçamento</span>
+            </div>
           </div>
         </section>
 
@@ -219,12 +143,12 @@ export default function Home({ pronto = true }) {
             </button>
           </div>
           <div className="home-categorias">
-            {CATEGORIAS.map(
+            {DEPARTAMENTOS.map(
               ({ icone: Icone, nome, descricao, busca: termo, foto, selo, itens }) => (
-                <button
+                <Link
                   key={nome}
+                  to={`/catalogo?busca=${encodeURIComponent(termo)}`}
                   className={`home-categoria ${foto ? "" : "home-categoria--marca"}`}
-                  onClick={() => abrirCatalogo(termo)}
                 >
                   {foto ? (
                     <img src={foto} alt="" loading="lazy" />
@@ -234,7 +158,7 @@ export default function Home({ pronto = true }) {
                   {selo && <span className="home-categoria-selo">{selo}</span>}
                   <span className="home-categoria-texto">
                     <strong>{nome}</strong>
-                    <small>{descricao}</small>
+                    <small>{descricao}.</small>
                     {itens && (
                       <span className="home-categoria-itens">
                         {itens.map((item) => <span key={item}>{item}</span>)}
@@ -244,7 +168,7 @@ export default function Home({ pronto = true }) {
                   <span className="home-categoria-seta" aria-hidden="true">
                     <ArrowRight size={18} />
                   </span>
-                </button>
+                </Link>
               ),
             )}
           </div>
@@ -269,7 +193,7 @@ export default function Home({ pronto = true }) {
                   >
                     <div className="home-produto-foto">
                       {produto.imagem_url ? (
-                        <img src={produto.imagem_url} alt={produto.nome} />
+                        <img src={produto.imagem_url} alt={`${produto.nome} - Comercial Pancotti`} loading="lazy" decoding="async" />
                       ) : (
                         <span>{produto.nome.charAt(0)}</span>
                       )}
@@ -309,7 +233,7 @@ export default function Home({ pronto = true }) {
                   Montar minha lista <ArrowRight size={18} />
                 </button>
                 <a
-                  href={`https://wa.me/55${LOJA.whatsapp.replace(/\D/g, "")}`}
+                  href={linkWhatsapp}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -417,7 +341,7 @@ export default function Home({ pronto = true }) {
                   </span>
                 </span>
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${LOJA.endereco}, ${LOJA.cidade}`)}`}
+                  href={linkMapa}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -440,7 +364,7 @@ export default function Home({ pronto = true }) {
               <span>Fale direto com a nossa equipe.</span>
               <a
                 className="home-ajuda-whats"
-                href={`https://wa.me/55${LOJA.whatsapp.replace(/\D/g, "")}`}
+                href={linkWhatsapp}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -448,7 +372,7 @@ export default function Home({ pronto = true }) {
               </a>
               <a
                 className="home-ajuda-fone"
-                href={`tel:+55${LOJA.telefone.replace(/\D/g, "")}`}
+                href={linkTelefone}
               >
                 <Phone size={16} /> {LOJA.telefone}
               </a>
@@ -494,12 +418,12 @@ export default function Home({ pronto = true }) {
               <Phone size={21} />
               <span>
                 <strong>Telefone e WhatsApp</strong>
-                <a href={`tel:+55${LOJA.telefone.replace(/\D/g, "")}`}>
+                <a href={linkTelefone}>
                   {LOJA.telefone}
                 </a>
                 <br />
                 <a
-                  href={`https://wa.me/55${LOJA.whatsapp.replace(/\D/g, "")}`}
+                  href={linkWhatsapp}
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -530,7 +454,7 @@ export default function Home({ pronto = true }) {
       <footer className="home-rodape">
         <div className="home-rodape-colunas">
           <div>
-            <img src="/logotipo-claro.png" alt="Comercial Pancotti" />
+            <img src="/images/logotipo-claro.png" alt="Comercial Pancotti" />
             <p>
               Materiais para construção com atendimento próximo, da base ao
               acabamento.
@@ -544,9 +468,12 @@ export default function Home({ pronto = true }) {
           </div>
           <div>
             <h4>Compre por categoria</h4>
-            <a href="#produtos">Materiais básicos</a>
-            <a href="#produtos">Hidráulica e elétrica</a>
-            <a href="#produtos">Tintas e ferramentas</a>
+            <Link to="/catalogo?busca=cimento">Materiais básicos</Link>
+            <Link to="/catalogo?busca=hidr%C3%A1ulica">Hidráulica</Link>
+            <Link to="/catalogo?busca=el%C3%A9trica">Elétrica</Link>
+            <Link to="/catalogo?busca=tinta">Tintas</Link>
+            <Link to="/catalogo?busca=ferramenta">Ferramentas</Link>
+            <Link to="/catalogo">Catálogo completo</Link>
           </div>
           <div>
             <h4>Atendimento</h4>

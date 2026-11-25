@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "migrar": "node src/migrar.js",
-    "fotos:s3": "node src/migrarFotosS3.js"
+    "migrar": "node src/scripts/migrar.js",
+    "fotos:s3": "node src/scripts/migrarFotosS3.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1163.0",

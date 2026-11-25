@@ -1,76 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  X, ShoppingCart, Plus, Minus, Check, Trash2, Truck,
+  X, ShoppingCart, Plus, Check, Truck,
   MessageCircle, ArrowRight, PackageSearch, RefreshCw, WifiOff,
   ChevronRight, ShieldCheck, Headphones, ClipboardList
 } from 'lucide-react';
-import api from '../services/api';
-import { carregarOrcamento, salvarOrcamento } from '../services/orcamento';
-import Cabecalho from '../components/Cabecalho';
-import './Vitrine.css';
-
-const DEPARTAMENTOS = [
-  ['Todos', ''], ['Materiais básicos', 'cimento'], ['Tijolos e blocos', 'tijolo'],
-  ['Hidráulica', 'hidráulica'], ['Elétrica', 'elétrica'],
-  ['Tintas', 'tinta'], ['Ferramentas', 'ferramenta']
-];
-
-const WHATSAPP = 'https://wa.me/5519994943399';
-
-// Nome da unidade de venda exibido no card ("Vendido por saco")
-const UNIDADES = { un: 'unidade', m: 'metro', m2: 'm²', m3: 'm³', kg: 'quilo', sc: 'saco', l: 'litro', cx: 'caixa', pc: 'peça' };
-const nomeUnidade = unidade => (unidade ? UNIDADES[unidade.toLowerCase()] ?? unidade : null);
-
-// Campo de quantidade: botões de - e + e um número que dá para digitar (ex.: 1000 tijolos)
-function Quantidade({ valor, onMudar, onRemover, rotulo }) {
-  // enquanto o campo está sendo editado, guarda o texto digitado; fora disso mostra o valor da lista
-  const [digitando, setDigitando] = useState(null);
-
-  const confirmar = () => {
-    const numero = parseInt(digitando, 10);
-    if (numero >= 1) onMudar(Math.min(numero, 99999));
-    setDigitando(null);
-  };
-  const vaiRemover = valor <= 1 && onRemover;
-
-  return (
-    <div className="cat-qtd">
-      <button type="button" onClick={() => (vaiRemover ? onRemover() : onMudar(valor - 1))} aria-label={vaiRemover ? `Remover ${rotulo}` : 'Diminuir quantidade'}>
-        {vaiRemover ? <Trash2 size={14} /> : <Minus size={14} />}
-      </button>
-      <input
-        value={digitando ?? String(valor)}
-        inputMode="numeric"
-        aria-label={`Quantidade de ${rotulo}`}
-        onChange={e => setDigitando(e.target.value.replace(/\D/g, ''))}
-        onBlur={confirmar}
-        onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
-        onFocus={e => { setDigitando(String(valor)); e.target.select(); }}
-      />
-      <button type="button" onClick={() => onMudar(valor + 1)} aria-label="Aumentar quantidade"><Plus size={14} /></button>
-    </div>
-  );
-}
-
-// Itens da lista de orçamento (usado no painel lateral e na gaveta do celular)
-function ListaItens({ carrinho, definirQuantidade, remover }) {
-  return (
-    <ul className="cat-lista">
-      {carrinho.map(item => (
-        <li key={item.id}>
-          {item.imagem_url ? <img src={item.imagem_url} alt="" /> : <span className="cat-lista-inicial">{item.nome.charAt(0)}</span>}
-          <div>
-            <strong>{item.nome}</strong>
-            <small>{nomeUnidade(item.unidade) ? `Por ${nomeUnidade(item.unidade)} · preço sob consulta` : 'Preço sob consulta'}</small>
-            <Quantidade valor={item.quantidade} rotulo={item.nome} onMudar={n => definirQuantidade(item.id, n)} onRemover={() => remover(item.id)} />
-          </div>
-          <button className="cat-remover" onClick={() => remover(item.id)} aria-label={`Remover ${item.nome}`}><X size={16} /></button>
-        </li>
-      ))}
-    </ul>
-  );
-}
+import { catalogoApi } from '../services/api/catalogo';
+import { carregarOrcamento, salvarOrcamento } from '../services/listaOrcamento';
+import Cabecalho from '../components/layout/Cabecalho';
+import useSeo from '../hooks/useSeo';
+import SeletorQuantidade from '../components/catalogo/SeletorQuantidade';
+import ListaOrcamento from '../components/catalogo/ListaOrcamento';
+import { FILTROS_CATALOGO } from '../data/departamentos';
+import { linkWhatsapp } from '../data/loja';
+import { nomeUnidade } from '../utils/formatacao';
+import '../styles/pages/Vitrine.css';
 
 export default function Vitrine() {
   const navigate = useNavigate();
@@ -86,8 +30,8 @@ export default function Vitrine() {
   const [aviso, setAviso] = useState(null);
 
   const buscarProdutos = () => {
-    api.get('/produtos')
-      .then(({ data }) => {
+    catalogoApi.listarProdutos()
+      .then(data => {
         const produtosAtivos = data.filter(produto => produto.ativo !== 0 && produto.ativo !== false);
         setProdutos(produtosAtivos);
         setCarrinho(itens => itens.map(item => {
@@ -123,7 +67,18 @@ export default function Vitrine() {
     .sort((a, b) => (ordem === 'za' ? -1 : 1) * a.nome.localeCompare(b.nome, 'pt-BR'));
   const totalItens = carrinho.length;
   const itemNoCarrinho = id => carrinho.find(item => item.id === id);
-  const departamentoAtual = DEPARTAMENTOS.find(([, valor]) => valor === busca);
+  const departamentoAtual = FILTROS_CATALOGO.find(([, valor]) => valor === busca);
+  const emDepartamento = Boolean(departamentoAtual && departamentoAtual[1]);
+  useSeo({
+    titulo: emDepartamento
+      ? `${departamentoAtual[0]} em São João da Boa Vista`
+      : 'Catálogo de Materiais de Construção',
+    descricao: emDepartamento
+      ? `${departamentoAtual[0]}: veja os produtos da Comercial Pancotti em São João da Boa Vista - SP e peça orçamento online com entrega na região.`
+      : 'Catálogo online da Comercial Pancotti: cimento, areia, tijolos, tubos, fios, tintas e ferramentas. Monte sua lista e peça orçamento sem cadastro.',
+    caminho: emDepartamento ? `/catalogo?busca=${encodeURIComponent(departamentoAtual[1])}` : '/catalogo',
+    noindex: Boolean(busca.trim() && !departamentoAtual),
+  });
   const titulo = departamentoAtual
     ? (departamentoAtual[1] ? departamentoAtual[0] : 'Todos os produtos')
     : `Resultados para “${busca.trim()}”`;
@@ -170,7 +125,7 @@ export default function Vitrine() {
             </label>
           </div>
           <div className="cat-chips" role="group" aria-label="Departamentos">
-            {DEPARTAMENTOS.map(([nome, valor]) => <button key={nome} className={busca === valor ? 'ativo' : ''} onClick={() => setBusca(valor)}>{nome}</button>)}
+            {FILTROS_CATALOGO.map(([nome, valor]) => <button key={nome} className={busca === valor ? 'ativo' : ''} onClick={() => setBusca(valor)}>{nome}</button>)}
           </div>
         </div>
 
@@ -178,7 +133,7 @@ export default function Vitrine() {
           <section className="cat-listagem" aria-label="Produtos">
             {status === 'carregando' && <div className="cat-grade">{Array.from({ length: 6 }, (_, i) => <div key={i} className="cat-card cat-card--esqueleto" />)}</div>}
             {status === 'erro' && <div className="cat-estado"><WifiOff size={38} /><h3>Não foi possível carregar o catálogo</h3><p>Verifique sua conexão e tente novamente.</p><button onClick={() => { setStatus('carregando'); buscarProdutos(); }}><RefreshCw size={17} /> Tentar novamente</button></div>}
-            {status === 'ok' && filtrados.length === 0 && <div className="cat-estado"><PackageSearch size={38} /><h3>Nenhum produto encontrado</h3><p>Tente outro termo ou fale com a nossa equipe, que encontramos para você.</p><div className="cat-estado-acoes"><button onClick={() => setBusca('')}>Ver todos os produtos</button><a href={WHATSAPP} target="_blank" rel="noreferrer"><MessageCircle size={16} /> Perguntar à loja</a></div></div>}
+            {status === 'ok' && filtrados.length === 0 && <div className="cat-estado"><PackageSearch size={38} /><h3>Nenhum produto encontrado</h3><p>Tente outro termo ou fale com a nossa equipe, que encontramos para você.</p><div className="cat-estado-acoes"><button onClick={() => setBusca('')}>Ver todos os produtos</button><a href={linkWhatsapp} target="_blank" rel="noreferrer"><MessageCircle size={16} /> Perguntar à loja</a></div></div>}
 
             {status === 'ok' && filtrados.length > 0 && (
               <div className="cat-grade">
@@ -200,7 +155,7 @@ export default function Vitrine() {
                         </div>
                         {item ? (
                           <div className="cat-card-na-lista">
-                            <Quantidade valor={item.quantidade} rotulo={produto.nome} onMudar={n => definirQuantidade(produto.id, n)} onRemover={() => remover(produto.id)} />
+                            <SeletorQuantidade valor={item.quantidade} rotulo={produto.nome} onMudar={n => definirQuantidade(produto.id, n)} onRemover={() => remover(produto.id)} />
                             <span>{unidade ? `${unidade}${item.quantidade > 1 ? 's' : ''}`.replace(/([²³])s$/, '$1') : 'na lista'}</span>
                           </div>
                         ) : (
@@ -227,7 +182,7 @@ export default function Vitrine() {
                   <small>Adicione produtos e ajuste as quantidades aqui. A loja responde com preço, frete e prazo.</small>
                 </div>
               ) : (
-                <ListaItens carrinho={carrinho} definirQuantidade={definirQuantidade} remover={remover} />
+                <ListaOrcamento carrinho={carrinho} definirQuantidade={definirQuantidade} remover={remover} />
               )}
               {rodapeOrcamento}
             </div>
@@ -236,7 +191,7 @@ export default function Vitrine() {
               <li><Truck size={17} /> Entrega na região</li>
               <li><Headphones size={17} /> Atendimento humano</li>
             </ul>
-            <a className="cat-painel-ajuda" href={WHATSAPP} target="_blank" rel="noreferrer">
+            <a className="cat-painel-ajuda" href={linkWhatsapp} target="_blank" rel="noreferrer">
               <MessageCircle size={18} /><span><strong>Não achou um produto?</strong>Pergunte à loja pelo WhatsApp</span><ChevronRight size={16} />
             </a>
           </aside>
@@ -252,7 +207,7 @@ export default function Vitrine() {
         {carrinho.length === 0 ? (
           <div className="cat-carrinho-vazio"><PackageSearch size={42} /><h3>Sua lista está vazia</h3><p>Adicione produtos para solicitar um orçamento.</p><button onClick={() => setGavetaAberta(false)}>Explorar catálogo</button></div>
         ) : (
-          <div className="cat-carrinho-itens"><ListaItens carrinho={carrinho} definirQuantidade={definirQuantidade} remover={remover} /></div>
+          <div className="cat-carrinho-itens"><ListaOrcamento carrinho={carrinho} definirQuantidade={definirQuantidade} remover={remover} /></div>
         )}
         {rodapeOrcamento}
       </aside>

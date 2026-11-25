@@ -3,11 +3,76 @@
 Site de orçamentos (React + Vite) com painel administrativo e API em Node.js (Express).
 O banco é PostgreSQL no **Supabase**; as fotos dos produtos ficam no **Amazon S3** (servidas pelo **CloudFront**); site e API ficam na **Vercel**.
 
+## Estrutura do projeto
+
 ```
-frontend/   site + painel (/admin)            -> projeto Vercel do site
-backend/    API Express                       -> projeto Vercel da API
-backend/sql/schema.sql   tabelas do banco (PostgreSQL)
+backend/                      API Express -> projeto Vercel da API (Root Directory: backend)
+├── api/index.js              entrada da Vercel (vercel.json manda todas as rotas para cá)
+├── sql/
+│   ├── schema.sql            tabelas do banco (PostgreSQL); roda sozinho ao iniciar
+│   ├── dados-iniciais.sql    catálogo inicial (só na primeira vez)
+│   └── legado/               script antigo em MySQL, só para referência
+├── src/
+│   ├── app.js                monta o Express: middlewares, rotas (/api) e tratamento de erros
+│   ├── server.js             servidor local: prepara o banco e sobe na porta 3006
+│   ├── config/               carregamento do .env
+│   ├── routes/               mapa de endpoints: index (/api), site (público) e admin (/api/admin)
+│   ├── controllers/          um por domínio; só HTTP: lê a requisição, chama service/repository e responde
+│   ├── services/             regras de negócio e transações (pedidos, estoque, relatórios,
+│   │                         senha, token JWT, armazenamento de fotos)
+│   ├── repositories/         ÚNICO lugar com SQL: uma camada por tabela/assunto (produtos, pedidos,
+│   │                         movimentacoes, clientes, categorias, fornecedores, administradores, indicadores)
+│   ├── validators/           validação de formulários e da URL (ids, datas, filtros, busca)
+│   ├── database/             conexão (pool pg), helper de transação e trechos SQL fixos (queries/)
+│   ├── middlewares/          login (auth), upload de imagem e tratamento central de erros
+│   ├── constants/            status de pedido e códigos de erro do PostgreSQL
+│   ├── utils/                AppError, asyncHandler e conversores de formulário
+│   └── scripts/              migração do banco e cópia de fotos para o S3
+└── .env.example              variáveis de ambiente (copie para .env)
+
+frontend/                     site + painel (/admin) -> projeto Vercel do site (Root Directory: frontend)
+├── index.html
+├── public/                   arquivos servidos por URL fixa, sem processamento do Vite
+│   ├── favicon.png
+│   ├── images/               logotipos e fachada da loja (/images/...)
+│   └── products/             fotos do catálogo inicial (/products/..., gravadas no banco)
+├── src/
+│   ├── main.jsx, App.jsx     entrada, roteador e animação de abertura
+│   ├── routes/               mapa de rotas (AppRoutes.jsx)
+│   ├── pages/                páginas do site (Home, Vitrine, Checkout, Login)
+│   │   └── admin/            telas do painel administrativo
+│   ├── components/
+│   │   ├── layout/           SiteLayout, AdminLayout e Cabecalho
+│   │   ├── ui/               componentes genéricos (Loader)
+│   │   ├── catalogo/         peças do catálogo (seletor de quantidade, lista de orçamento)
+│   │   └── admin/            peças e modais do painel (importe de components/admin)
+│   ├── services/
+│   │   ├── http.js           cliente axios (URL da API, token, sessão expirada)
+│   │   ├── api/              um módulo por domínio: catalogo.js e admin/* (pedidosApi, produtosApi...)
+│   │   ├── sessao.js         login do painel salvo no navegador
+│   │   └── listaOrcamento.js lista de materiais do cliente salva no navegador
+│   ├── hooks/                hooks reutilizáveis (useRolarParaHash)
+│   ├── data/                 conteúdo fixo: loja (contato), departamentos e textos da home
+│   ├── constants/            listas fixas: status de pedido, tipos de movimento, unidades
+│   ├── utils/                funções puras: formatação, números, texto, CSV, WhatsApp, erros
+│   ├── styles/               todo o CSS (global, admin, pages/, components/)
+│   └── assets/               imagens importadas pelo código
+└── .env.example
 ```
+
+Convenções:
+- Backend em camadas: `routes` → `controllers` (HTTP) → `services` (regras e transações) → `repositories` (SQL).
+  Controllers e services não escrevem SQL; funções de repository que participam de transação recebem
+  a conexão como último argumento (`repo.criar(dados, conexao)`).
+- As páginas nunca chamam o axios direto: usam `services/api/*`, que devolvem o corpo da resposta.
+- Erros da API sempre vêm como `{ erro: 'mensagem' }` (backend: `middlewares/erros.js`; frontend: `utils/erros.js`).
+  Em produção, erros 500 respondem uma mensagem genérica; o detalhe fica só no log do servidor.
+- SQL injection: valores da requisição **nunca** são interpolados no texto do SQL. Vão sempre como
+  parâmetro (`db.query('... WHERE id = ?', [id])`), validados antes em `validators/consulta.js`
+  (ids inteiros, datas AAAA-MM-DD, listas fechadas, busca com curingas `%`/`_` escapados).
+  `database/queries/` só guarda trechos SQL fixos do código, e `database/conexao.js` recusa
+  parâmetros em formato inesperado ou em quantidade diferente dos `?`.
+- Arquivos estáticos: o que é importado no código (`import`) fica em `src/` e passa pelo Vite; o que é chamado por caminho absoluto (`/images/...`) fica em `public/`.
 
 ## Rodar na própria máquina
 
