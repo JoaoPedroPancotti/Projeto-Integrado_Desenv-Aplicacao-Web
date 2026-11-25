@@ -1,3 +1,26 @@
+/* Paleta do site: preto e amarelo */
+:root {
+  --fundo: #0a0a0a;
+  --superficie: #141414;
+  --superficie-2: #1c1c1c;
+  --borda: #262626;
+  --borda-forte: #3a3a3a;
+
+  --texto-forte: #fafafa;
+  --texto: #a3a3a3;
+  --texto-suave: #737373;
+
+  --amarelo: #facc15;
+  --amarelo-escuro: #eab308;
+  --amarelo-fundo: rgba(250, 204, 21, 0.12);
+
+  --erro: #f87171;
+  --erro-fundo: rgba(239, 68, 68, 0.12);
+
+  /* largura útil do site: cabeçalho, banner e seções seguem a mesma régua */
+  --largura-site: 1520px;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,12 +29,45 @@
 }
 
 body {
-  background-color: #f8fafc;
-  color: #334155;
+  background-color: var(--fundo);
+  color: var(--texto);
+  /* banner e login usam a largura toda da tela (100vw) */
+  overflow-x: clip;
 }
 
-.container {
-  max-width: 1200px;
+h1,
+h2,
+h3,
+h4 {
+  color: var(--texto-forte);
+}
+
+input,
+textarea {
+  background-color: var(--superficie-2);
+  color: var(--texto-forte);
+  font-size: 1rem;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--texto-suave);
+}
+
+input:focus,
+textarea:focus {
+  outline: 2px solid var(--amarelo);
+  outline-offset: -1px;
+}
+
+::selection {
+  background-color: var(--amarelo);
+  color: var(--fundo);
+}
+
+/* Área centralizada das páginas do site (components/layout/SiteLayout.jsx) */
+.site-layout {
+  max-width: calc(var(--largura-site) + 40px);
   margin: 0 auto;
   padding: 0 20px;
 }

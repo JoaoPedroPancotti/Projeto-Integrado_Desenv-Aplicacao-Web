@@ -1,13 +1,158 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+
+    <!-- SEO principal (o hook useSeo atualiza estas tags em cada rota) -->
+    <title>Comercial Pancotti | Materiais de Construção em São João da Boa Vista - SP</title>
+    <meta
+      name="description"
+      content="Materiais de construção em São João da Boa Vista - SP: cimento, areia, tijolos, hidráulica, elétrica e tintas. Monte sua lista e peça orçamento online, com entrega na região."
+    />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://comercialpancotti.com.br/" />
+    <meta name="author" content="Comercial Pancotti" />
+    <meta name="theme-color" content="#f5b800" />
+
+    <!-- SEO local -->
+    <meta name="geo.region" content="BR-SP" />
+    <meta name="geo.placename" content="São João da Boa Vista" />
+    <meta name="format-detection" content="telephone=yes" />
+
+    <!-- Open Graph / Twitter (WhatsApp, Facebook, LinkedIn, X) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="Comercial Pancotti" />
+    <meta property="og:url" content="https://comercialpancotti.com.br/" />
+    <meta property="og:title" content="Comercial Pancotti | Materiais de Construção em São João da Boa Vista" />
+    <meta
+      property="og:description"
+      content="Cimento, areia, tijolos, hidráulica, elétrica e tintas. Monte sua lista e peça orçamento online, com entrega na região."
+    />
+    <meta property="og:image" content="https://comercialpancotti.com.br/images/frenteloja.png" />
+    <meta property="og:image:alt" content="Fachada da Comercial Pancotti, loja de materiais de construção em São João da Boa Vista" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Comercial Pancotti | Materiais de Construção em São João da Boa Vista" />
+    <meta
+      name="twitter:description"
+      content="Cimento, areia, tijolos, hidráulica, elétrica e tintas. Peça seu orçamento online."
+    />
+    <meta name="twitter:image" content="https://comercialpancotti.com.br/images/frenteloja.png" />
+
+    <!-- Ícones e manifesto -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/images/logo-p.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Desempenho (Core Web Vitals) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="image" href="/images/frenteloja.png" fetchpriority="high" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+
+    <!-- Dados estruturados: loja local + site -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "HardwareStore",
+            "@id": "https://comercialpancotti.com.br/#loja",
+            "name": "Comercial Pancotti",
+            "alternateName": ["Pancotti Materiais de Construção", "Comercial Pancotti Materiais para Construção"],
+            "description": "Loja de materiais de construção em São João da Boa Vista - SP, com cimento, areia, brita, tijolos, hidráulica, elétrica, tintas e ferramentas. Orçamento online e entrega na região.",
+            "url": "https://comercialpancotti.com.br/",
+            "image": "https://comercialpancotti.com.br/images/frenteloja.png",
+            "logo": "https://comercialpancotti.com.br/images/logotipo.png",
+            "telephone": "+55-19-99494-3399",
+            "priceRange": "$$",
+            "currenciesAccepted": "BRL",
+            "address": {
+              "@type": "PostalAddress",
+              "streetAddress": "R. Júlio Michelazo, 326 - Vila Nossa Sra. de Fátima",
+              "addressLocality": "São João da Boa Vista",
+              "addressRegion": "SP",
+              "postalCode": "13872-660",
+              "addressCountry": "BR"
+            },
+            "areaServed": [
+              { "@type": "City", "name": "São João da Boa Vista" },
+              { "@type": "AdministrativeArea", "name": "Região de São João da Boa Vista - SP" }
+            ],
+            "openingHoursSpecification": [
+              {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                "opens": "07:00",
+                "closes": "18:00"
+              },
+              {
+                "@type": "OpeningHoursSpecification",
+                "dayOfWeek": "Saturday",
+                "opens": "07:00",
+                "closes": "12:00"
+              }
+            ],
+            "hasOfferCatalog": {
+              "@type": "OfferCatalog",
+              "name": "Catálogo de materiais de construção",
+              "itemListElement": [
+                { "@type": "OfferCatalog", "name": "Materiais básicos (cimento, areia, brita, cal e argamassa)" },
+                { "@type": "OfferCatalog", "name": "Tijolos e blocos" },
+                { "@type": "OfferCatalog", "name": "Hidráulica" },
+                { "@type": "OfferCatalog", "name": "Elétrica" },
+                { "@type": "OfferCatalog", "name": "Tintas e acabamento" },
+                { "@type": "OfferCatalog", "name": "Ferragens e ferramentas" }
+              ]
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://comercialpancotti.com.br/#site",
+            "url": "https://comercialpancotti.com.br/",
+            "name": "Comercial Pancotti",
+            "inLanguage": "pt-BR",
+            "publisher": { "@id": "https://comercialpancotti.com.br/#loja" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://comercialpancotti.com.br/catalogo?busca={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Conteúdo para buscadores/leitores sem JavaScript; o React substitui ao carregar -->
+      <main>
+        <h1>Comercial Pancotti — Materiais de construção em São João da Boa Vista - SP</h1>
+        <p>
+          Cimento, areia, brita, tijolos, hidráulica, elétrica, tintas e ferramentas.
+          Monte sua lista de materiais e peça orçamento online, com entrega na região.
+        </p>
+        <nav aria-label="Principal">
+          <a href="/catalogo">Catálogo de materiais de construção</a>
+          <a href="/catalogo?busca=cimento">Cimento e argamassa</a>
+          <a href="/catalogo?busca=tijolo">Tijolos e blocos</a>
+          <a href="/catalogo?busca=hidr%C3%A1ulica">Hidráulica</a>
+          <a href="/catalogo?busca=el%C3%A9trica">Elétrica</a>
+          <a href="/catalogo?busca=tinta">Tintas e acabamento</a>
+        </nav>
+        <address>
+          R. Júlio Michelazo, 326 - Vila Nossa Sra. de Fátima, São João da Boa Vista - SP, 13872-660.
+          Telefone/WhatsApp: (19) 99494-3399. Seg–Sex 7h às 18h · Sáb 7h às 12h.
+        </address>
+      </main>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

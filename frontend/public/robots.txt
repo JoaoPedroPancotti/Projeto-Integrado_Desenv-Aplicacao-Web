@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /login
+Disallow: /checkout
+
+Sitemap: https://comercialpancotti.com.br/sitemap.xml

@@ -1,0 +1,11 @@
+
+# Fotos enviadas pelo painel
+/backend/uploads/
+
+.vercel
+.env*
+!.env.example
+
+# Dependências e build
+node_modules/
+/frontend/dist/
